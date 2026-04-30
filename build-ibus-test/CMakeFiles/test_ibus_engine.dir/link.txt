@@ -1,0 +1,1 @@
+/usr/lib64/ccache/c++ -Wl,--dependency-file=CMakeFiles/test_ibus_engine.dir/link.d CMakeFiles/test_ibus_engine.dir/test_ibus_engine.cpp.o "CMakeFiles/test_ibus_engine.dir/home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.cpp.o" -o test_ibus_engine  libethio/libethio.a -libus-1.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0

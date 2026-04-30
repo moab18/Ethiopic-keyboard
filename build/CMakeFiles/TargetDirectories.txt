@@ -1,0 +1,9 @@
+/home/moab/sources/ethiopic-keyboard/build/CMakeFiles/test_mapping.dir
+/home/moab/sources/ethiopic-keyboard/build/CMakeFiles/test_engine.dir
+/home/moab/sources/ethiopic-keyboard/build/CMakeFiles/test.dir
+/home/moab/sources/ethiopic-keyboard/build/CMakeFiles/edit_cache.dir
+/home/moab/sources/ethiopic-keyboard/build/CMakeFiles/rebuild_cache.dir
+/home/moab/sources/ethiopic-keyboard/build/libethio/CMakeFiles/ethio.dir
+/home/moab/sources/ethiopic-keyboard/build/libethio/CMakeFiles/test.dir
+/home/moab/sources/ethiopic-keyboard/build/libethio/CMakeFiles/edit_cache.dir
+/home/moab/sources/ethiopic-keyboard/build/libethio/CMakeFiles/rebuild_cache.dir

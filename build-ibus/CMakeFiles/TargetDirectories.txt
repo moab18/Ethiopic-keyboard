@@ -1,0 +1,14 @@
+/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles/ibus-engine-ethiopic.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles/edit_cache.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles/rebuild_cache.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles/list_install_components.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles/install.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles/install/local.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles/install/strip.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/libethio/CMakeFiles/ethio.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/libethio/CMakeFiles/edit_cache.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/libethio/CMakeFiles/rebuild_cache.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/libethio/CMakeFiles/list_install_components.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/libethio/CMakeFiles/install.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/libethio/CMakeFiles/install/local.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus/libethio/CMakeFiles/install/strip.dir

@@ -1,0 +1,1 @@
+/usr/lib64/ccache/c++ -Wl,--dependency-file=CMakeFiles/test_mapping.dir/link.d CMakeFiles/test_mapping.dir/test_mapping.cpp.o -o test_mapping  libethio/libethio.a

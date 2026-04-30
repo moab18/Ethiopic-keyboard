@@ -1,0 +1,2 @@
+/usr/bin/ar qc libethio.a CMakeFiles/ethio.dir/src/mapping.cpp.o CMakeFiles/ethio.dir/src/engine.cpp.o
+/usr/bin/ranlib libethio.a
