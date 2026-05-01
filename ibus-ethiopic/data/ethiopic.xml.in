@@ -21,7 +21,7 @@
         <layout>us</layout>
         <version>0.1.0</version>
         <textdomain>ibus-ethiopic</textdomain>
-        <rank>80</rank>
+        <rank>0</rank>
         <symbol>&#x1200;</symbol>
         </engine>
     </engines>

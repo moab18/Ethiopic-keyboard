@@ -24,6 +24,8 @@ public:
 
     void reset();
 
+    std::string_view produced_text() const { return produced_; }
+
     bool passthrough() const { return passthrough_; }
     void toggle_passthrough() { passthrough_ = !passthrough_; }
 

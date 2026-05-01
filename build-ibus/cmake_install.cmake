@@ -65,14 +65,14 @@ endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/ibus/component/org.freedesktop.IBus.Ethiopic.xml")
+   "/ibus/component/ethiopic.xml")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/ibus/component" TYPE FILE FILES "/home/moab/sources/ethiopic-keyboard/ibus-ethiopic/data/org.freedesktop.IBus.Ethiopic.xml")
+  file(INSTALL DESTINATION "/ibus/component" TYPE FILE FILES "/home/moab/sources/ethiopic-keyboard/build-ibus/ethiopic.xml")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)

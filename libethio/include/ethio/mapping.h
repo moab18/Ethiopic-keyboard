@@ -39,6 +39,8 @@ public:
 
     bool empty() const { return root_->children.empty(); }
 
+    size_t root_entry_count() const { return root_->children.size(); }
+
 private:
     std::unique_ptr<TrieNode> root_;
 };

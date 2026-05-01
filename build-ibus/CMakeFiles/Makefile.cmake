@@ -10,6 +10,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "CMakeFiles/3.31.11/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.31.11/CMakeSystem.cmake"
   "/home/moab/sources/ethiopic-keyboard/ibus-ethiopic/CMakeLists.txt"
+  "/home/moab/sources/ethiopic-keyboard/ibus-ethiopic/data/ethiopic.xml.in"
   "/home/moab/sources/ethiopic-keyboard/libethio/CMakeLists.txt"
   "/usr/share/cmake/Modules/CMakeCXXInformation.cmake"
   "/usr/share/cmake/Modules/CMakeCommonLanguageInclude.cmake"
@@ -46,6 +47,7 @@ set(CMAKE_MAKEFILE_OUTPUTS
 
 # Byproducts of CMake generate step:
 set(CMAKE_MAKEFILE_PRODUCTS
+  "ethiopic.xml"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   "libethio/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
