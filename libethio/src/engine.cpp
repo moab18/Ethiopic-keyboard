@@ -24,6 +24,8 @@ std::string Engine::flush()
 
 bool Engine::filter(std::string_view key)
 {
+    if (passthrough_) return false;
+
     if (!trie_root_) return false;
 
     if (current_node_ == nullptr || current_node_ == trie_root_) {

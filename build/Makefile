@@ -57,23 +57,13 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/moab/sources/ethiopic-keyboard/tests
+CMAKE_SOURCE_DIR = /home/moab/sources/ethiopic-keyboard
 
 # The top-level build directory on which CMake was run.
 CMAKE_BINARY_DIR = /home/moab/sources/ethiopic-keyboard/build
 
 #=============================================================================
 # Targets provided globally by CMake.
-
-# Special rule for the target test
-test:
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running tests..."
-	/usr/bin/ctest --force-new-ctest-process $(ARGS)
-.PHONY : test
-
-# Special rule for the target test
-test/fast: test
-.PHONY : test/fast
 
 # Special rule for the target edit_cache
 edit_cache:
@@ -94,6 +84,51 @@ rebuild_cache:
 # Special rule for the target rebuild_cache
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
+
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -127,32 +162,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named test_mapping
-
-# Build rule for target.
-test_mapping: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_mapping
-.PHONY : test_mapping
-
-# fast build rule for target.
-test_mapping/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_mapping.dir/build.make CMakeFiles/test_mapping.dir/build
-.PHONY : test_mapping/fast
-
-#=============================================================================
-# Target rules for targets named test_engine
-
-# Build rule for target.
-test_engine: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_engine
-.PHONY : test_engine
-
-# fast build rule for target.
-test_engine/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_engine.dir/build.make CMakeFiles/test_engine.dir/build
-.PHONY : test_engine/fast
-
-#=============================================================================
 # Target rules for targets named ethio
 
 # Build rule for target.
@@ -165,53 +174,18 @@ ethio/fast:
 	$(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/build
 .PHONY : ethio/fast
 
-test_engine.o: test_engine.cpp.o
-.PHONY : test_engine.o
+#=============================================================================
+# Target rules for targets named ibus-engine-ethiopic
 
-# target to build an object file
-test_engine.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_engine.dir/build.make CMakeFiles/test_engine.dir/test_engine.cpp.o
-.PHONY : test_engine.cpp.o
+# Build rule for target.
+ibus-engine-ethiopic: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ibus-engine-ethiopic
+.PHONY : ibus-engine-ethiopic
 
-test_engine.i: test_engine.cpp.i
-.PHONY : test_engine.i
-
-# target to preprocess a source file
-test_engine.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_engine.dir/build.make CMakeFiles/test_engine.dir/test_engine.cpp.i
-.PHONY : test_engine.cpp.i
-
-test_engine.s: test_engine.cpp.s
-.PHONY : test_engine.s
-
-# target to generate assembly for a file
-test_engine.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_engine.dir/build.make CMakeFiles/test_engine.dir/test_engine.cpp.s
-.PHONY : test_engine.cpp.s
-
-test_mapping.o: test_mapping.cpp.o
-.PHONY : test_mapping.o
-
-# target to build an object file
-test_mapping.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_mapping.dir/build.make CMakeFiles/test_mapping.dir/test_mapping.cpp.o
-.PHONY : test_mapping.cpp.o
-
-test_mapping.i: test_mapping.cpp.i
-.PHONY : test_mapping.i
-
-# target to preprocess a source file
-test_mapping.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_mapping.dir/build.make CMakeFiles/test_mapping.dir/test_mapping.cpp.i
-.PHONY : test_mapping.cpp.i
-
-test_mapping.s: test_mapping.cpp.s
-.PHONY : test_mapping.s
-
-# target to generate assembly for a file
-test_mapping.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_mapping.dir/build.make CMakeFiles/test_mapping.dir/test_mapping.cpp.s
-.PHONY : test_mapping.cpp.s
+# fast build rule for target.
+ibus-engine-ethiopic/fast:
+	$(MAKE) $(MAKESILENT) -f ibus-ethiopic/CMakeFiles/ibus-engine-ethiopic.dir/build.make ibus-ethiopic/CMakeFiles/ibus-engine-ethiopic.dir/build
+.PHONY : ibus-engine-ethiopic/fast
 
 # Help Target
 help:
@@ -220,17 +194,13 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
 	@echo "... rebuild_cache"
-	@echo "... test"
 	@echo "... ethio"
-	@echo "... test_engine"
-	@echo "... test_mapping"
-	@echo "... test_engine.o"
-	@echo "... test_engine.i"
-	@echo "... test_engine.s"
-	@echo "... test_mapping.o"
-	@echo "... test_mapping.i"
-	@echo "... test_mapping.s"
+	@echo "... ibus-engine-ethiopic"
 .PHONY : help
 
 

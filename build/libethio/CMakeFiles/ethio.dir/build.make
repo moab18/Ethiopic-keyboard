@@ -53,7 +53,7 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/moab/sources/ethiopic-keyboard/tests
+CMAKE_SOURCE_DIR = /home/moab/sources/ethiopic-keyboard
 
 # The top-level build directory on which CMake was run.
 CMAKE_BINARY_DIR = /home/moab/sources/ethiopic-keyboard/build
@@ -125,6 +125,6 @@ libethio/CMakeFiles/ethio.dir/clean:
 .PHONY : libethio/CMakeFiles/ethio.dir/clean
 
 libethio/CMakeFiles/ethio.dir/depend:
-	cd /home/moab/sources/ethiopic-keyboard/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/moab/sources/ethiopic-keyboard/tests /home/moab/sources/ethiopic-keyboard/libethio /home/moab/sources/ethiopic-keyboard/build /home/moab/sources/ethiopic-keyboard/build/libethio /home/moab/sources/ethiopic-keyboard/build/libethio/CMakeFiles/ethio.dir/DependInfo.cmake "--color=$(COLOR)"
+	cd /home/moab/sources/ethiopic-keyboard/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/moab/sources/ethiopic-keyboard /home/moab/sources/ethiopic-keyboard/libethio /home/moab/sources/ethiopic-keyboard/build /home/moab/sources/ethiopic-keyboard/build/libethio /home/moab/sources/ethiopic-keyboard/build/libethio/CMakeFiles/ethio.dir/DependInfo.cmake "--color=$(COLOR)"
 .PHONY : libethio/CMakeFiles/ethio.dir/depend
 

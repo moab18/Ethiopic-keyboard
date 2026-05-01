@@ -24,6 +24,9 @@ public:
 
     void reset();
 
+    bool passthrough() const { return passthrough_; }
+    void toggle_passthrough() { passthrough_ = !passthrough_; }
+
 private:
     bool descend(std::string_view key, const TrieNode *node);
     bool try_key_from_root(std::string_view key);
@@ -33,6 +36,7 @@ private:
     std::string composing_;
     std::string pending_text_;
     std::string produced_;
+    bool passthrough_ = false;
 };
 
 } // namespace ethio

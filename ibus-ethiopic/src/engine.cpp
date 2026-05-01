@@ -7,6 +7,9 @@
 #ifndef MAPPING_DIR
 #define MAPPING_DIR "data"
 #endif
+#ifndef MAPPING_SOURCE_DIR
+#define MAPPING_SOURCE_DIR "data"
+#endif
 
 G_DEFINE_TYPE(IBusEthiopicEngine, ibus_ethiopic_engine, IBUS_TYPE_ENGINE)
 
@@ -16,12 +19,21 @@ static bool mapping_loaded = false;
 static void ensure_mapping()
 {
     if (mapping_loaded) return;
-    try {
-        shared_mapping = ethio::load_mapping_file(MAPPING_DIR "/amharic/am-sera-v2.json");
-        mapping_loaded = true;
-    } catch (const std::exception &e) {
-        g_warning("Failed to load mapping: %s", e.what());
+
+    const char *paths[] = {MAPPING_DIR, MAPPING_SOURCE_DIR, nullptr};
+    for (int i = 0; paths[i]; i++) {
+        std::string full = std::string(paths[i]) + "/amharic/am-sera-v2.json";
+        if (g_file_test(full.c_str(), G_FILE_TEST_EXISTS)) {
+            try {
+                shared_mapping = ethio::load_mapping_file(full);
+                mapping_loaded = true;
+                return;
+            } catch (const std::exception &e) {
+                g_warning("Error loading mapping from %s: %s", full.c_str(), e.what());
+            }
+        }
     }
+    g_warning("Could not find am-sera-v2.json in any search path");
 }
 
 static bool has_connection(IBusEthiopicEngine *self)
@@ -80,6 +92,17 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     if (self->is_password_field) return FALSE;
 
+    if ((state & IBUS_CONTROL_MASK) &&
+        (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R)) {
+        self->priv->core.toggle_passthrough();
+        self->priv->core.reset();
+        commit(self);
+        preedit_update(self);
+        return TRUE;
+    }
+
+    if (self->priv->core.passthrough()) return FALSE;
+
     switch (keyval) {
     case IBUS_KEY_Escape:
         self->priv->core.reset();
@@ -134,6 +157,9 @@ static void
 ibus_ethiopic_engine_focus_out(IBusEngine *engine)
 {
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    if (self->priv->core.passthrough()) {
+        self->priv->core.toggle_passthrough();
+    }
     self->priv->core.reset();
     preedit_update(self);
 }
