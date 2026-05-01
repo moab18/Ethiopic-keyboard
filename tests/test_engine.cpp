@@ -8,9 +8,9 @@
 static std::string data_path()
 {
 #ifdef DATA_DIR
-    return DATA_DIR "/amharic/am-sera-v2.json";
+    return DATA_DIR "/amharic/am-sera.json";
 #else
-    return "data/amharic/am-sera-v2.json";
+    return "data/amharic/am-sera.json";
 #endif
 }
 

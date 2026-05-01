@@ -49,12 +49,12 @@ install(TARGETS ibus-engine-ethiopic
 
 set(LIBEXECDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}")
 configure_file(
-    data/org.freedesktop.IBus.Ethiopic.xml.in
-    ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.IBus.Ethiopic.xml
+    data/ethiopic.xml.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ethiopic.xml
     @ONLY
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.IBus.Ethiopic.xml
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ethiopic.xml
     DESTINATION ${CMAKE_INSTALL_DATADIR}/ibus/component
 )
 

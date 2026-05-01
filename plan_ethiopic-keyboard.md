@@ -1272,7 +1272,7 @@ This mirrors m17n's `MInputContext` + `MIMMap` in essence, but in clean C++ with
 
 #### 3c. Mapping File Format (JSON)
 
-Instead of m17n's S-expression `.mim` files, we use JSON for readability. The completed Amharic SERA mapping lives at `data/amharic/am-sera-v2.json`.
+Instead of m17n's S-expression `.mim` files, we use JSON for readability. The completed Amharic SERA mapping lives at `data/amharic/am-sera.json`.
 
 ```json
 {
@@ -1510,7 +1510,7 @@ add_test(NAME engine COMMAND test_engine)
 
 ### 6a. SERA Mapping v2 — Key Design Details
 
-The mapping file `data/amharic/am-sera-v2.json` is the cleaned and validated Amharic SERA mapping. Key conventions established:
+The mapping file `data/amharic/am-sera.json` is the cleaned and validated Amharic SERA mapping. Key conventions established:
 
 **Consonant families and input aliases:**
 - **Plain (lowercase prefix):** e.g. `he` → ሀ, `le` → ለ, `me` → መ (regular consonants)
@@ -1535,7 +1535,7 @@ The mapping file `data/amharic/am-sera-v2.json` is the cleaned and validated Amh
 
 | Phase | Duration | Deliverables | Status |
 |-------|----------|--------------|--------|
-| **Phase 1: Core Library** | 2–3 weeks | `libethio` with SERA mapping for Amharic, trie engine, unit tests | Mapping done (`data/amharic/am-sera-v2.json`) |
+| **Phase 1: Core Library** | 2–3 weeks | `libethio` with SERA mapping for Amharic, trie engine, unit tests | Mapping done (`data/amharic/am-sera.json`) |
 | **Phase 2: IBus Engine** | 1–2 weeks | `ibus-ethiopic` wrapper, Fedora RPM packaging, D-Bus registration | |
 | **Phase 3: Typewriter Layout** | 1 week | Physical typewriter layout JSON, mode switching via IBus property | |
 | **Phase 4: Expand Languages** | 2 weeks | Tigrinya, Oromo, and other Ethiopic varieties | |
@@ -1561,7 +1561,7 @@ The mapping file `data/amharic/am-sera-v2.json` is the cleaned and validated Amh
 
 ### 8. Next Steps
 
-Phase 1 mapping is complete (`data/amharic/am-sera-v2.json`). Next:
+Phase 1 mapping is complete (`data/amharic/am-sera.json`). Next:
 
 1. **Implement the trie loader** (`libethio/src/mapping.cpp`) — parse JSON maps into the `MapNode` trie, handling the `""` → commit action convention for `'` delimiter.
 2. **Implement the core engine** (`libethio/src/engine.cpp`) — `filter()`, state management, preedit buffer.

@@ -23,6 +23,12 @@ target_compile_definitions(test_engine PRIVATE
     DATA_DIR="${CMAKE_SOURCE_DIR}/../data"
 )
 
+add_executable(test_features test_features.cpp)
+target_link_libraries(test_features PRIVATE ethio)
+target_compile_definitions(test_features PRIVATE
+    DATA_DIR="${CMAKE_SOURCE_DIR}/../data"
+)
+
 add_executable(test_ibus_engine test_ibus_engine.cpp)
 target_include_directories(test_ibus_engine PRIVATE
     ../ibus-ethiopic/src
@@ -48,7 +54,7 @@ target_sources(test_ibus_engine PRIVATE
 )
 
 enable_testing()
-foreach(test_name test_mapping test_engine test_ibus_engine)
+foreach(test_name test_mapping test_engine test_features test_ibus_engine)
     add_test(NAME ${test_name} COMMAND ${test_name})
     set_tests_properties(${test_name} PROPERTIES
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/../.."

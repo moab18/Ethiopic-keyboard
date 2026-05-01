@@ -7,9 +7,9 @@
 int main()
 {
 #ifdef DATA_DIR
-    const std::string json_path = DATA_DIR "/amharic/am-sera-v2.json";
+    const std::string json_path = DATA_DIR "/amharic/am-sera.json";
 #else
-    const std::string json_path = "data/amharic/am-sera-v2.json";
+    const std::string json_path = "data/amharic/am-sera.json";
 #endif
 
     auto mf = ethio::load_mapping_file(json_path);

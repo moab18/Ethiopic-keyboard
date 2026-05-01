@@ -22,7 +22,7 @@ static void ensure_mapping()
 
     const char *paths[] = {MAPPING_DIR, MAPPING_SOURCE_DIR, nullptr};
     for (int i = 0; paths[i]; i++) {
-        std::string full = std::string(paths[i]) + "/amharic/am-sera-v2.json";
+        std::string full = std::string(paths[i]) + "/amharic/am-sera.json";
         if (g_file_test(full.c_str(), G_FILE_TEST_EXISTS)) {
             try {
                 shared_mapping = ethio::load_mapping_file(full);
@@ -33,7 +33,7 @@ static void ensure_mapping()
             }
         }
     }
-    g_warning("Could not find am-sera-v2.json in any search path");
+    g_warning("Could not find am-sera.json in any search path");
 }
 
 static bool has_connection(IBusEthiopicEngine *self)

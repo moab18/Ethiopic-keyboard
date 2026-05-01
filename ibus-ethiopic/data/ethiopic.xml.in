@@ -1,0 +1,28 @@
+<!-- ethiopic.xml -->
+<?xml version="1.0" encoding="utf-8"?>
+<component>
+    <name>org.freedesktop.IBus.Ethiopic</name>
+    <description>Ethiopic Input Method</description>
+    <version>0.1.0</version>
+    <license>GPL-3.0+</license>
+    <author>Moab</author>
+    <homepage>https://github.com/moab/ethiopic-keyboard</homepage>
+    <exec>@LIBEXECDIR@/ibus-engine-ethiopic --ibus</exec>
+    <textdomain>ibus-ethiopic</textdomain>
+    <engines>
+        <engine>
+        <name>ethiopic</name>
+        <longname>Ethiopic</longname>
+        <description>Amharic input using SERA transliteration</description>
+        <language>am</language>
+        <license>GPL-3.0+</license>
+        <author>Moab</author>
+        <icon>ibus-ethiopic</icon>
+        <layout>us</layout>
+        <version>0.1.0</version>
+        <textdomain>ibus-ethiopic</textdomain>
+        <rank>80</rank>
+        <symbol>&#x1200;</symbol>
+        </engine>
+    </engines>
+</component>
