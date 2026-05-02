@@ -11,7 +11,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "CMakeFiles/3.31.11/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.31.11/CMakeSystem.cmake"
   "/home/moab/sources/ethiopic-keyboard/ibus-ethiopic/CMakeLists.txt"
-  "/home/moab/sources/ethiopic-keyboard/ibus-ethiopic/data/ethiopic.xml.in"
+  "/home/moab/sources/ethiopic-keyboard/ibus-ethiopic/data/ethiopic.xml"
   "/home/moab/sources/ethiopic-keyboard/libethio/CMakeLists.txt"
   "/usr/share/cmake/Modules/CMakeCXXInformation.cmake"
   "/usr/share/cmake/Modules/CMakeCommonLanguageInclude.cmake"

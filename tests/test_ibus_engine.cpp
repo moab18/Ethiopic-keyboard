@@ -22,10 +22,14 @@ static std::string last_preedit(IBusEthiopicEngine *e)
     return e->priv->last_preedit;
 }
 
+#ifndef IBUS_ENGINE_NAME
+#define IBUS_ENGINE_NAME "ethio:am"
+#endif
+
 int main()
 {
     auto *engine = IBUS_ETHIOPIC_ENGINE(
-        g_object_new(IBUS_TYPE_ETHIOPIC_ENGINE, "engine-name", "ethiopic", nullptr));
+        g_object_new(IBUS_TYPE_ETHIOPIC_ENGINE, "engine-name", IBUS_ENGINE_NAME, nullptr));
 
     auto *ibus_engine = IBUS_ENGINE(engine);
     std::cout << "Engine created, testing key input...\n";

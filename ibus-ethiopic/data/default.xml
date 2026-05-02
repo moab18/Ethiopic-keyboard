@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- default.xml -->
+<engines>
+    <engine>
+        <name>ethio:am</name>
+        <language>am</language>
+        <longname>Amharic (SERA)</longname>
+        <description>Amharic input using SERA transliteration</description>
+        <version>0.1.0</version>
+        <license>GPL-3.0+</license>
+        <author>Moab</author>
+        <icon>ibus-ethiopic</icon>
+        <layout>us</layout>
+        <rank>0</rank>
+        <symbol>&#x1200;</symbol>
+    </engine>
+</engines>

@@ -142,4 +142,6 @@ libethio/CMakeFiles/ethio.dir/src/engine.cpp.o: \
  /usr/include/c++/15/bits/erase_if.h /usr/include/c++/15/vector \
  /usr/include/c++/15/bits/stl_vector.h \
  /usr/include/c++/15/bits/stl_bvector.h \
- /usr/include/c++/15/bits/vector.tcc
+ /usr/include/c++/15/bits/vector.tcc \
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
+ /usr/include/c++/15/cstdarg

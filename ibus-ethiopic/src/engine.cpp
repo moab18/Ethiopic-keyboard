@@ -2,6 +2,7 @@
 
 #include <ibus.h>
 
+#include "ethio/logger.h"
 #include "ethio/mapping.h"
 
 #ifndef MAPPING_DIR
@@ -20,36 +21,42 @@ static void ensure_mapping()
 {
     if (mapping_loaded) return;
 
-    g_debug("ensure_mapping: MAPPING_DIR=%s MAPPING_SOURCE_DIR=%s",
+    ethio::logger.debug("ensure_mapping: MAPPING_DIR=%s MAPPING_SOURCE_DIR=%s",
             MAPPING_DIR, MAPPING_SOURCE_DIR);
 
     const char *paths[] = {MAPPING_DIR, MAPPING_SOURCE_DIR, nullptr};
     for (int i = 0; paths[i]; i++) {
         std::string full = std::string(paths[i]) + "/amharic/am-sera.json";
-        g_debug("ensure_mapping: trying path %s", full.c_str());
+        ethio::logger.debug("ensure_mapping: trying path %s", full.c_str());
+        ethio::logger.info("ensure_mapping: trying path %s", full.c_str());
         if (g_file_test(full.c_str(), G_FILE_TEST_EXISTS)) {
-            g_debug("ensure_mapping: file found at %s, loading...", full.c_str());
+            ethio::logger.debug("ensure_mapping: file found at %s, loading...",
+                    full.c_str());
             try {
                 shared_mapping = ethio::load_mapping_file(full);
                 mapping_loaded = true;
-                g_debug("ensure_mapping: loaded %zu state(s) input_method=%s title=%s",
+                ethio::logger.debug("ensure_mapping: loaded %zu state(s) "
+                        "input_method=%s title=%s",
                         shared_mapping.states.size(),
                         shared_mapping.input_method.c_str(),
                         shared_mapping.title.c_str());
                 if (!shared_mapping.states.empty()) {
-                    g_debug("ensure_mapping: state[0] '%s' has %zu root entries",
+                    ethio::logger.debug("ensure_mapping: state[0] '%s' has "
+                            "%zu root entries",
                             shared_mapping.states[0].name.c_str(),
                             shared_mapping.states[0].trie.root_entry_count());
                 }
                 return;
             } catch (const std::exception &e) {
-                g_warning("Error loading mapping from %s: %s", full.c_str(), e.what());
+                ethio::logger.warning("Error loading mapping from %s: %s",
+                        full.c_str(), e.what());
             }
         } else {
-            g_debug("ensure_mapping: file NOT found at %s", full.c_str());
+            ethio::logger.debug("ensure_mapping: file NOT found at %s",
+                    full.c_str());
         }
     }
-    g_warning("Could not find am-sera.json in any search path");
+    ethio::logger.warning("Could not find am-sera.json in any search path");
 }
 
 static bool has_connection(IBusEthiopicEngine *self)
@@ -62,7 +69,7 @@ static void commit(IBusEthiopicEngine *self)
     std::string text = self->priv->core.flush();
     if (text.empty()) return;
 
-    g_debug("commit: committing text='%s'", text.c_str());
+    ethio::logger.debug("commit: committing text='%s'", text.c_str());
 
     self->priv->last_commit = text;
 
@@ -76,7 +83,7 @@ static void preedit_update(IBusEthiopicEngine *self)
 {
     std::string_view composing = self->priv->core.composing();
 
-    g_debug("preedit_update: composing='%s' (len=%zu)%s",
+    ethio::logger.debug("preedit_update: composing='%s' (len=%zu)%s",
             composing.data(), composing.size(),
             composing.empty() ? " -> hiding" : "");
 
@@ -127,7 +134,7 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     switch (keyval) {
     case IBUS_KEY_Escape:
-        g_debug("process_key_event: Escape -> reset");
+        ethio::logger.debug("process_key_event: Escape -> reset");
         self->priv->core.reset();
         preedit_update(self);
         return FALSE;
@@ -135,12 +142,14 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
     case IBUS_KEY_BackSpace: {
         std::string_view comp = self->priv->core.composing();
         if (!comp.empty()) {
-            g_debug("process_key_event: Backspace during composition -> reset");
+            ethio::logger.debug("process_key_event: Backspace during "
+                    "composition -> reset");
             self->priv->core.reset();
             preedit_update(self);
             return TRUE;
         }
-        g_debug("process_key_event: Backspace (nothing composing) -> pass through");
+        ethio::logger.debug("process_key_event: Backspace (nothing composing) "
+                "-> pass through");
         return FALSE;
     }
 
@@ -156,7 +165,8 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     gunichar uc = ibus_keyval_to_unicode(keyval);
     if (uc == 0) {
-        g_debug("process_key_event: keyval=0x%x -> uc=0, passing through", keyval);
+        ethio::logger.debug("process_key_event: keyval=0x%x -> uc=0, "
+                "passing through", keyval);
         return FALSE;
     }
 
@@ -166,8 +176,8 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     bool handled = self->priv->core.filter(key);
 
-    g_debug("process_key_event: keyval=0x%x uc=U+%04X key='%s' filter=%s "
-            "composing='%s' produced='%s'",
+    ethio::logger.debug("process_key_event: keyval=0x%x uc=U+%04X key='%s' "
+            "filter=%s composing='%s' produced='%s'",
             keyval, uc, key.c_str(),
             handled ? "TRUE" : "FALSE",
             std::string(self->priv->core.composing()).c_str(),
@@ -210,18 +220,19 @@ ibus_ethiopic_engine_reset(IBusEngine *engine)
 static void
 ibus_ethiopic_engine_init(IBusEthiopicEngine *self)
 {
-    g_debug("init: engine instance created");
+    ethio::logger.debug("init: engine instance created");
 
     self->priv = new IBusEthiopicEnginePrivate();
     self->is_password_field = false;
 
     ensure_mapping();
     if (!shared_mapping.states.empty()) {
-        g_debug("init: loading trie from state '%s'",
+        ethio::logger.debug("init: loading trie from state '%s'",
                 shared_mapping.states[0].name.c_str());
         self->priv->core.load_trie(shared_mapping.states[0].trie);
     } else {
-        g_warning("init: no mapping states available, trie will be empty");
+        ethio::logger.warning("init: no mapping states available, "
+                "trie will be empty");
     }
 }
 
@@ -247,4 +258,3 @@ ibus_ethiopic_engine_class_init(IBusEthiopicEngineClass *klass)
     engine_class->focus_out = ibus_ethiopic_engine_focus_out;
     engine_class->reset = ibus_ethiopic_engine_reset;
 }
-

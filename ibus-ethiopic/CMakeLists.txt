@@ -16,6 +16,9 @@ endif()
 set(MAPPING_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/ibus-ethiopic")
 set(MAPPING_SOURCE_DIR "${PROJECT_SOURCE_DIR}/../data")
 
+set(IBUS_ENGINE_NAME "ethio:am")
+set(IBUS_COMPONENT_NAME "org.freedesktop.IBus.Ethiopic")
+
 add_executable(ibus-engine-ethiopic
     src/main.cpp
     src/engine.cpp
@@ -36,6 +39,8 @@ target_link_libraries(ibus-engine-ethiopic PRIVATE
 target_compile_definitions(ibus-engine-ethiopic PRIVATE
     MAPPING_DIR="${MAPPING_DATA_DIR}"
     MAPPING_SOURCE_DIR="${MAPPING_SOURCE_DIR}"
+    IBUS_ENGINE_NAME="${IBUS_ENGINE_NAME}"
+    IBUS_COMPONENT_NAME="${IBUS_COMPONENT_NAME}"
 )
 
 target_compile_options(ibus-engine-ethiopic PRIVATE
@@ -49,13 +54,17 @@ install(TARGETS ibus-engine-ethiopic
 
 set(LIBEXECDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}")
 configure_file(
-    data/ethiopic.xml.in
+    data/ethiopic.xml
     ${CMAKE_CURRENT_BINARY_DIR}/ethiopic.xml
     @ONLY
 )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ethiopic.xml
     DESTINATION ${CMAKE_INSTALL_DATADIR}/ibus/component
+)
+
+install(FILES data/default.xml
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/ibus-ethiopic
 )
 
 install(DIRECTORY ${MAPPING_SOURCE_DIR}/

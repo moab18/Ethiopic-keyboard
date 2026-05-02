@@ -8,12 +8,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(HEADERS
     include/ethio/mapping.h
     include/ethio/engine.h
+    include/ethio/logger.h
     include/ethio/json.hpp
 )
 
 set(SOURCES
     src/mapping.cpp
     src/engine.cpp
+    src/logger.cpp
 )
 
 add_library(ethio STATIC ${SOURCES} ${HEADERS})
