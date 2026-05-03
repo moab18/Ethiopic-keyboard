@@ -41,6 +41,7 @@ target_compile_definitions(ibus-engine-ethiopic PRIVATE
     MAPPING_SOURCE_DIR="${MAPPING_SOURCE_DIR}"
     IBUS_ENGINE_NAME="${IBUS_ENGINE_NAME}"
     IBUS_COMPONENT_NAME="${IBUS_COMPONENT_NAME}"
+    LIBEXECDIR="${CMAKE_INSTALL_FULL_LIBEXECDIR}"
 )
 
 target_compile_options(ibus-engine-ethiopic PRIVATE
