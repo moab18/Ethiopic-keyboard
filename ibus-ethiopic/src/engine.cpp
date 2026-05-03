@@ -64,6 +64,21 @@ static bool has_connection(IBusEthiopicEngine *self)
     return ibus_service_get_connection(IBUS_SERVICE(self)) != nullptr;
 }
 
+static gboolean deferred_preedit_hide_cb(gpointer user_data)
+{
+    IBusEthiopicEngine *self = static_cast<IBusEthiopicEngine *>(user_data);
+    IBusText *empty = ibus_text_new_from_static_string("");
+    ibus_engine_update_preedit_text(IBUS_ENGINE(self), empty, 0, FALSE);
+    g_object_unref(self);
+    return G_SOURCE_REMOVE;
+}
+
+static void defer_preedit_hide(IBusEthiopicEngine *self)
+{
+    if (!has_connection(self)) return;
+    g_idle_add(deferred_preedit_hide_cb, g_object_ref(self));
+}
+
 static void commit(IBusEthiopicEngine *self)
 {
     std::string text = self->priv->core.flush();
@@ -92,7 +107,10 @@ static void preedit_update(IBusEthiopicEngine *self)
     if (!has_connection(self)) return;
 
     if (composing.empty()) {
-        ibus_engine_hide_preedit_text(IBUS_ENGINE(self));
+        if (has_connection(self)) {
+            IBusText *empty_text = ibus_text_new_from_static_string("");
+            ibus_engine_update_preedit_text(IBUS_ENGINE(self), empty_text, 0, FALSE);
+        }
         return;
     }
 
@@ -101,10 +119,9 @@ static void preedit_update(IBusEthiopicEngine *self)
     ibus_attr_list_append(text->attrs,
         ibus_attr_underline_new(IBUS_ATTR_UNDERLINE_SINGLE, 0,
                                 static_cast<guint>(composing.size())));
-    ibus_engine_update_preedit_text_with_mode(IBUS_ENGINE(self), text,
-                                              static_cast<guint>(composing.size()),
-                                              TRUE,
-                                              IBUS_ENGINE_PREEDIT_COMMIT);
+    ibus_engine_update_preedit_text(IBUS_ENGINE(self), text,
+                                    static_cast<guint>(self->priv->core.cursor()),
+                                    TRUE);
 }
 
 static gboolean
@@ -155,9 +172,67 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     case IBUS_KEY_Return:
     case IBUS_KEY_KP_Enter:
+        self->priv->core.finish_composition();
         commit(self);
+        self->priv->last_preedit.clear();
+        defer_preedit_hide(self);
+        return TRUE;
+
+    case IBUS_KEY_Left:
+    case IBUS_KEY_KP_Left:
+        if (self->priv->core.composing().empty())
+            return FALSE;
+        self->priv->core.move_cursor_left();
         preedit_update(self);
-        return FALSE;
+        return TRUE;
+
+    case IBUS_KEY_Right:
+    case IBUS_KEY_KP_Right:
+        if (self->priv->core.composing().empty())
+            return FALSE;
+        self->priv->core.move_cursor_right();
+        preedit_update(self);
+        return TRUE;
+
+    case IBUS_KEY_Home:
+    case IBUS_KEY_KP_Home:
+        if (self->priv->core.composing().empty())
+            return FALSE;
+        self->priv->core.move_cursor_home();
+        preedit_update(self);
+        return TRUE;
+
+    case IBUS_KEY_End:
+    case IBUS_KEY_KP_End:
+        if (self->priv->core.composing().empty())
+            return FALSE;
+        self->priv->core.move_cursor_end();
+        preedit_update(self);
+        return TRUE;
+
+    case IBUS_KEY_Up:
+    case IBUS_KEY_KP_Up:
+        if (self->priv->core.composing().empty())
+            return FALSE;
+        self->priv->core.move_cursor_home();
+        preedit_update(self);
+        return TRUE;
+
+    case IBUS_KEY_Down:
+    case IBUS_KEY_KP_Down:
+        if (self->priv->core.composing().empty())
+            return FALSE;
+        self->priv->core.move_cursor_end();
+        preedit_update(self);
+        return TRUE;
+
+    case IBUS_KEY_Page_Up:
+    case IBUS_KEY_KP_Page_Up:
+    case IBUS_KEY_Page_Down:
+    case IBUS_KEY_KP_Page_Down:
+        if (self->priv->core.composing().empty())
+            return FALSE;
+        return TRUE;
 
     default:
         break;
@@ -184,7 +259,24 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
             std::string(self->priv->core.produced_text()).c_str());
 
     commit(self);
-    preedit_update(self);
+
+    if (!handled) {
+        ethio::logger.debug("process_key_event: unmapped key='%s', "
+                "committing as text", key.c_str());
+        self->priv->last_commit += key;
+        if (has_connection(self)) {
+            IBusText *ibus_text = ibus_text_new_from_static_string(key.c_str());
+            ibus_engine_commit_text(IBUS_ENGINE(self), ibus_text);
+        }
+        handled = true;
+    }
+
+    if (self->priv->core.composing().empty()) {
+        self->priv->last_preedit.clear();
+        defer_preedit_hide(self);
+    } else {
+        preedit_update(self);
+    }
 
     return handled ? TRUE : FALSE;
 }

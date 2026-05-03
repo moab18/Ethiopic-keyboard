@@ -164,6 +164,30 @@ src/engine.cpp.s:
 	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/engine.cpp.s
 .PHONY : src/engine.cpp.s
 
+src/logger.o: src/logger.cpp.o
+.PHONY : src/logger.o
+
+# target to build an object file
+src/logger.cpp.o:
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/logger.cpp.o
+.PHONY : src/logger.cpp.o
+
+src/logger.i: src/logger.cpp.i
+.PHONY : src/logger.i
+
+# target to preprocess a source file
+src/logger.cpp.i:
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/logger.cpp.i
+.PHONY : src/logger.cpp.i
+
+src/logger.s: src/logger.cpp.s
+.PHONY : src/logger.s
+
+# target to generate assembly for a file
+src/logger.cpp.s:
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/logger.cpp.s
+.PHONY : src/logger.cpp.s
+
 src/mapping.o: src/mapping.cpp.o
 .PHONY : src/mapping.o
 
@@ -201,6 +225,9 @@ help:
 	@echo "... src/engine.o"
 	@echo "... src/engine.i"
 	@echo "... src/engine.s"
+	@echo "... src/logger.o"
+	@echo "... src/logger.i"
+	@echo "... src/logger.s"
 	@echo "... src/mapping.o"
 	@echo "... src/mapping.i"
 	@echo "... src/mapping.s"

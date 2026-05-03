@@ -1,6 +1,8 @@
 file(REMOVE_RECURSE
   "CMakeFiles/ethio.dir/src/engine.cpp.o"
   "CMakeFiles/ethio.dir/src/engine.cpp.o.d"
+  "CMakeFiles/ethio.dir/src/logger.cpp.o"
+  "CMakeFiles/ethio.dir/src/logger.cpp.o.d"
   "CMakeFiles/ethio.dir/src/mapping.cpp.o"
   "CMakeFiles/ethio.dir/src/mapping.cpp.o.d"
   "libethio.a"

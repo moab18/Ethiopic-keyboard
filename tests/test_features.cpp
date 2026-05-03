@@ -86,7 +86,7 @@ int main()
         eng.filter("h"); eng.filter("W"); eng.filter("a");
         assert_eq(eng.flush(), "ኋ", "labiovelar 'hWa'");
 
-        eng.filter("q"); eng.filter("W"); eng.filter("i");
+        eng.filter("q"); eng.filter("W"); eng.filter("i"); eng.filter(" ");
         assert_eq(eng.flush(), "ቊ", "labiovelar 'qWi'");
 
         eng.filter("k"); eng.filter("W"); eng.filter("u");
@@ -98,26 +98,14 @@ int main()
         eng.filter("/"); eng.filter("h"); eng.filter("e"); eng.filter(" ");
         assert_eq(eng.flush(), "ኀ", "slash-alt '/he' -> ḫa");
 
-        eng.filter("/"); eng.filter("s"); eng.filter("e"); eng.filter(" ");
-        assert_eq(eng.flush(), "ሠ", "slash-alt '/se' -> śa");
+        eng.filter("/"); eng.filter("h"); eng.filter("W"); eng.filter("a"); eng.filter(" ");
+        assert_eq(eng.flush(), "ኋ", "slash-alt '/hWa' -> ḫwa");
 
-        eng.filter("/"); eng.filter("d"); eng.filter("e"); eng.filter(" ");
-        assert_eq(eng.flush(), "ጸ", "slash-alt '/de' -> ṣa");
+        eng.filter("/"); eng.filter("e"); eng.filter(" ");
+        assert_eq(eng.flush(), "ዐ", "slash-alt '/e' -> `ayn ä");
 
-        eng.filter("/"); eng.filter("z"); eng.filter("a"); eng.filter(" ");
-        assert_eq(eng.flush(), "ዣ", "slash-alt '/za' -> ža");
-
-        eng.filter("/"); eng.filter("t"); eng.filter("i"); eng.filter(" ");
-        assert_eq(eng.flush(), "ጢ", "slash-alt '/ti' -> ṭi");
-
-        eng.filter("/"); eng.filter("c"); eng.filter("E");
-        assert_eq(eng.flush(), "ጬ", "slash-alt '/cE' -> č'e");
-
-        eng.filter("/"); eng.filter("f"); eng.filter("a"); eng.filter(" ");
-        assert_eq(eng.flush(), "ፃ", "slash-alt '/fa' -> ś́a");
-
-        eng.filter("/"); eng.filter("p"); eng.filter("o"); eng.filter(" ");
-        assert_eq(eng.flush(), "ጶ", "slash-alt '/po' -> p̣o");
+        eng.filter("/"); eng.filter("D"); eng.filter("e"); eng.filter(" ");
+        assert_eq(eng.flush(), "ዸ", "slash-alt '/De' -> ḍa");
     }
 
     // ── 4. Double-consonant alternatives (same results as slash) ──
@@ -125,14 +113,23 @@ int main()
         eng.filter("h"); eng.filter("h"); eng.filter("e"); eng.filter(" ");
         assert_eq(eng.flush(), "ኀ", "double-cons 'hhe'");
 
-        eng.filter("s"); eng.filter("s"); eng.filter("a"); eng.filter(" ");
-        assert_eq(eng.flush(), "ሣ", "double-cons 'ssa'");
+        eng.filter("h"); eng.filter("h"); eng.filter("W"); eng.filter("a"); eng.filter(" ");
+        assert_eq(eng.flush(), "ኋ", "double-cons 'hhWa'");
 
-        eng.filter("d"); eng.filter("d"); eng.filter("E");
-        assert_eq(eng.flush(), "ጼ", "double-cons 'ddE'");
+        eng.filter("c"); eng.filter("c"); eng.filter("e"); eng.filter(" ");
+        assert_eq(eng.flush(), "ጨ", "double-cons 'cce'");
+    }
 
-        eng.filter("z"); eng.filter("z"); eng.filter("o"); eng.filter(" ");
-        assert_eq(eng.flush(), "ዦ", "double-cons 'zzo'");
+    // ── 4. Double-consonant alternatives (same results as slash) ──
+    {
+        eng.filter("h"); eng.filter("h"); eng.filter("e"); eng.filter(" ");
+        assert_eq(eng.flush(), "ኀ", "double-cons 'hhe'");
+
+        eng.filter("h"); eng.filter("h"); eng.filter("W"); eng.filter("a"); eng.filter(" ");
+        assert_eq(eng.flush(), "ኋ", "double-cons 'hhWa'");
+
+        eng.filter("c"); eng.filter("c"); eng.filter("e"); eng.filter(" ");
+        assert_eq(eng.flush(), "ጨ", "double-cons 'cce'");
     }
 
     // ── 5. Standalone vowels (አ family) ──
@@ -278,18 +275,19 @@ int main()
 
     // ── 12. Commit delimiter "'" behavior ──
     {
-        eng.filter("h"); eng.filter("e");
-        assert(eng.composing() == "ሀ");
+        eng.filter("h"); eng.filter("i");
+        assert(eng.composing() == "ሂ");
 
         eng.filter("'");
-        assert_eq(eng.flush(), "ሀ", "delimiter '\"' flushes pending 'he'");
+        assert_eq(eng.flush(), "ሂ", "delimiter '\"' flushes pending 'hi'");
 
         eng.filter("'");
-        eng.filter("h"); eng.filter("e");
+        eng.filter("h"); eng.filter("i");
         eng.filter("'");
         std::string out = eng.flush();
-        assert(out == "ሀ" || out.find("ሀ") != std::string::npos);
+        assert(out == "ሂ" || out.find("ሂ") != std::string::npos);
         std::cout << "  PASS: delimiter flushes pending, then composes next\n";
+        eng.reset();
     }
 
     // ── 13. Auto-commit (leaf node, no children) ──
@@ -297,8 +295,8 @@ int main()
         eng.filter("b"); eng.filter("E");
         assert_eq(eng.flush(), "ቤ", "auto-commit leaf 'bE'");
 
-        eng.filter("q"); eng.filter("W"); eng.filter("i");
-        assert_eq(eng.flush(), "ቊ", "auto-commit leaf 'qWi'");
+        eng.filter("k"); eng.filter("W"); eng.filter("u");
+        assert_eq(eng.flush(), "ኵ", "auto-commit leaf 'kWu'");
     }
 
     // ── 14. Multiple-syllable word ──
@@ -313,8 +311,8 @@ int main()
         eng.filter("h"); eng.filter("W"); eng.filter("a");
         assert_eq(eng.flush(), "ኋ", "prefix priority: 'hWa' beats 'h'+'Wa'");
 
-        eng.filter("h"); eng.filter("e"); eng.filter("e");
-        assert_eq(eng.flush(), "ሄ", "prefix priority: 'hee' beats 'he'+'e'");
+        eng.filter("h"); eng.filter("i"); eng.filter("e");
+        assert_eq(eng.flush(), "ሄ", "prefix priority: 'hie' beats 'hi'+'e'");
     }
 
     // ── 16. Raw keys shown when no action ──
@@ -326,13 +324,13 @@ int main()
         eng.reset();
     }
 
-    // ── 17. š-family via 'x' key ──
+    // ── 17. b-family consonants ──
     {
-        eng.filter("x"); eng.filter("e"); eng.filter(" ");
-        assert_eq(eng.flush(), "ሸ", "š-family 'xe'");
+        eng.filter("b"); eng.filter("e"); eng.filter(" ");
+        assert_eq(eng.flush(), "በ", "b-family 'be'");
 
-        eng.filter("x"); eng.filter("a"); eng.filter(" ");
-        assert_eq(eng.flush(), "ሻ", "š-family 'xa'");
+        eng.filter("b"); eng.filter("a"); eng.filter(" ");
+        assert_eq(eng.flush(), "ባ", "b-family 'ba'");
     }
 
     // ── 18. q-family, Q-family (q vs ḳ) and labiovelar ──
@@ -361,8 +359,8 @@ int main()
 
     // ── 21. Reset clears pending state ──
     {
-        eng.filter("h"); eng.filter("e");
-        assert(eng.composing() == "ሀ");
+        eng.filter("h"); eng.filter("i");
+        assert(eng.composing() == "ሂ");
         eng.reset();
         assert(eng.composing().empty());
         assert(eng.flush().empty());

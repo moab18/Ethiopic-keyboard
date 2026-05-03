@@ -20,6 +20,38 @@ void Engine::reset()
     current_node_ = trie_root_;
     composing_.clear();
     pending_text_.clear();
+    cursor_pos_ = 0;
+}
+
+void Engine::move_cursor_left()
+{
+    if (cursor_pos_ > 0)
+        cursor_pos_--;
+}
+
+void Engine::move_cursor_right()
+{
+    size_t max_cp = utf8_codepoint_count(composing());
+    if (cursor_pos_ < max_cp)
+        cursor_pos_++;
+}
+
+void Engine::move_cursor_home()
+{
+    cursor_pos_ = 0;
+}
+
+void Engine::move_cursor_end()
+{
+    cursor_pos_ = utf8_codepoint_count(composing());
+}
+
+void Engine::finish_composition()
+{
+    if (!pending_text_.empty()) {
+        produced_ += pending_text_;
+    }
+    reset();
 }
 
 std::string Engine::flush()
@@ -69,6 +101,8 @@ bool Engine::filter(std::string_view key)
     if (!pending_text_.empty()) {
         produced_ += pending_text_;
         pending_text_.clear();
+    } else if (!composing_.empty()) {
+        produced_ += composing_;
     }
     reset();
     return try_key_from_root(key);
@@ -124,6 +158,8 @@ bool Engine::descend(std::string_view key, const TrieNode *node)
                     "composing cleared", produced_.c_str());
         }
         reset();
+    } else {
+        cursor_pos_ = utf8_codepoint_count(composing());
     }
 
     return true;

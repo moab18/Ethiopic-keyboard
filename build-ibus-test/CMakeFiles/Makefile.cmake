@@ -54,6 +54,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/test_mapping.dir/DependInfo.cmake"
   "CMakeFiles/test_engine.dir/DependInfo.cmake"
+  "CMakeFiles/test_features.dir/DependInfo.cmake"
   "CMakeFiles/test_ibus_engine.dir/DependInfo.cmake"
   "libethio/CMakeFiles/ethio.dir/DependInfo.cmake"
   )

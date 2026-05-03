@@ -100,19 +100,35 @@ libethio/CMakeFiles/ethio.dir/src/engine.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/ethio.dir/src/engine.cpp.s"
 	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test/libethio && /usr/lib64/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/moab/sources/ethiopic-keyboard/libethio/src/engine.cpp -o CMakeFiles/ethio.dir/src/engine.cpp.s
 
+libethio/CMakeFiles/ethio.dir/src/logger.cpp.o: libethio/CMakeFiles/ethio.dir/flags.make
+libethio/CMakeFiles/ethio.dir/src/logger.cpp.o: /home/moab/sources/ethiopic-keyboard/libethio/src/logger.cpp
+libethio/CMakeFiles/ethio.dir/src/logger.cpp.o: libethio/CMakeFiles/ethio.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object libethio/CMakeFiles/ethio.dir/src/logger.cpp.o"
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test/libethio && /usr/lib64/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT libethio/CMakeFiles/ethio.dir/src/logger.cpp.o -MF CMakeFiles/ethio.dir/src/logger.cpp.o.d -o CMakeFiles/ethio.dir/src/logger.cpp.o -c /home/moab/sources/ethiopic-keyboard/libethio/src/logger.cpp
+
+libethio/CMakeFiles/ethio.dir/src/logger.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/ethio.dir/src/logger.cpp.i"
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test/libethio && /usr/lib64/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/moab/sources/ethiopic-keyboard/libethio/src/logger.cpp > CMakeFiles/ethio.dir/src/logger.cpp.i
+
+libethio/CMakeFiles/ethio.dir/src/logger.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/ethio.dir/src/logger.cpp.s"
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test/libethio && /usr/lib64/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/moab/sources/ethiopic-keyboard/libethio/src/logger.cpp -o CMakeFiles/ethio.dir/src/logger.cpp.s
+
 # Object files for target ethio
 ethio_OBJECTS = \
 "CMakeFiles/ethio.dir/src/mapping.cpp.o" \
-"CMakeFiles/ethio.dir/src/engine.cpp.o"
+"CMakeFiles/ethio.dir/src/engine.cpp.o" \
+"CMakeFiles/ethio.dir/src/logger.cpp.o"
 
 # External object files for target ethio
 ethio_EXTERNAL_OBJECTS =
 
 libethio/libethio.a: libethio/CMakeFiles/ethio.dir/src/mapping.cpp.o
 libethio/libethio.a: libethio/CMakeFiles/ethio.dir/src/engine.cpp.o
+libethio/libethio.a: libethio/CMakeFiles/ethio.dir/src/logger.cpp.o
 libethio/libethio.a: libethio/CMakeFiles/ethio.dir/build.make
 libethio/libethio.a: libethio/CMakeFiles/ethio.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libethio.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX static library libethio.a"
 	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test/libethio && $(CMAKE_COMMAND) -P CMakeFiles/ethio.dir/cmake_clean_target.cmake
 	cd /home/moab/sources/ethiopic-keyboard/build-ibus-test/libethio && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/ethio.dir/link.txt --verbose=$(VERBOSE)
 

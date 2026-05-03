@@ -362,7 +362,13 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o: \
  /usr/include/ibus-1.0/ibusemoji.h /usr/include/ibus-1.0/ibusunicode.h \
  /usr/include/ibus-1.0/ibusxevent.h \
  /usr/include/ibus-1.0/ibusaccelgroup.h /usr/include/ibus-1.0/ibustypes.h \
- /usr/include/ibus-1.0/ibuskeysyms-compat.h \
+ /usr/include/ibus-1.0/ibuskeysyms-compat.h /usr/include/c++/15/cstdio \
+ /usr/include/stdio.h /usr/include/bits/types/__fpos_t.h \
+ /usr/include/bits/types/__mbstate_t.h \
+ /usr/include/bits/types/__fpos64_t.h /usr/include/bits/types/__FILE.h \
+ /usr/include/bits/types/FILE.h /usr/include/bits/types/struct_FILE.h \
+ /usr/include/bits/types/cookie_io_functions_t.h \
+ /usr/include/bits/stdio_lim.h /usr/include/c++/15/cstring \
  /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.h \
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h \
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h \
@@ -406,8 +412,6 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o: \
  /usr/include/c++/15/cwchar /usr/include/wchar.h \
  /usr/include/bits/wchar.h /usr/include/bits/types/wint_t.h \
  /usr/include/bits/types/mbstate_t.h \
- /usr/include/bits/types/__mbstate_t.h /usr/include/bits/types/__FILE.h \
- /usr/include/bits/types/FILE.h \
  /usr/include/c++/15/bits/shared_ptr_base.h /usr/include/c++/15/typeinfo \
  /usr/include/c++/15/bits/allocated_ptr.h \
  /usr/include/c++/15/bits/refwrap.h \
@@ -437,12 +441,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o: \
  /usr/include/c++/15/initializer_list \
  /usr/include/c++/15/bits/basic_string.h /usr/include/c++/15/string_view \
  /usr/include/c++/15/bits/string_view.tcc \
- /usr/include/c++/15/ext/string_conversions.h /usr/include/c++/15/cstdio \
- /usr/include/stdio.h /usr/include/bits/types/__fpos_t.h \
- /usr/include/bits/types/__fpos64_t.h \
- /usr/include/bits/types/struct_FILE.h \
- /usr/include/bits/types/cookie_io_functions_t.h \
- /usr/include/bits/stdio_lim.h /usr/include/c++/15/cerrno \
+ /usr/include/c++/15/ext/string_conversions.h /usr/include/c++/15/cerrno \
  /usr/include/c++/15/bits/charconv.h \
  /usr/include/c++/15/bits/basic_string.tcc \
  /usr/include/c++/15/bits/memory_resource.h /usr/include/c++/15/cstddef \
@@ -456,4 +455,6 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o: \
  /usr/include/c++/15/bits/erase_if.h /usr/include/c++/15/vector \
  /usr/include/c++/15/bits/stl_vector.h \
  /usr/include/c++/15/bits/stl_bvector.h \
- /usr/include/c++/15/bits/vector.tcc
+ /usr/include/c++/15/bits/vector.tcc \
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
+ /usr/include/c++/15/cstdarg

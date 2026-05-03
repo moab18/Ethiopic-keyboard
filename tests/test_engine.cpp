@@ -33,30 +33,28 @@ int main()
         eng.reset();
     }
 
-    // --- Test 2: "he" shows "ሀ" pending, commits on mismatch ---
+    // --- Test 2: "h" pending "ህ", committed on unmapped key ---
     {
         eng.filter("h");
-        eng.filter("e");
-        assert(eng.composing() == "ሀ");       // pending "he" action
+        assert(eng.composing() == "ህ");       // pending "h" action
         assert(eng.flush().empty());
 
-        eng.filter(" ");                       // space triggers branch-miss
-        assert(eng.flush() == "ሀ");
+        eng.filter("#");                       // unmapped key triggers branch-miss
+        assert(eng.flush() == "ህ");
         assert(eng.composing().empty());
-        std::cout << "  PASS: 'he' + space -> flush 'ሀ'\n";
+        std::cout << "  PASS: 'h' + '#' -> flush 'ህ'\n";
         eng.reset();
     }
 
-    // --- Test 3: "hee" replaces "he" -> auto-commits "ሄ" ---
+    // --- Test 3: "hie" leaf auto-commits "ሄ" ---
     {
         eng.filter("h");
+        eng.filter("i");
+        assert(eng.composing() == "ሂ");       // pending "hi", has child "e"
         eng.filter("e");
-        assert(eng.composing() == "ሀ");       // pending "he"
-        eng.filter("e");
-        // "hee" node has no children → auto-committed
         assert(eng.composing().empty());
         assert(eng.flush() == "ሄ");
-        std::cout << "  PASS: 'hee' -> flush 'ሄ'\n";
+        std::cout << "  PASS: 'hie' -> flush 'ሄ'\n";
         eng.reset();
     }
 
@@ -157,14 +155,14 @@ int main()
         eng.reset();
     }
 
-    // --- Test 12: "'" miss does nothing ---
+    // --- Test 12: "'" + unmapped key flushes raw keys ---
     {
         eng.filter("'");
         assert(eng.composing() == "'");
-        eng.filter("#");                       // miss at ' → no pending → nothing
-        assert(eng.flush().empty());
+        eng.filter("#");                       // miss at ' → flush raw keys
+        assert(eng.flush() == "'");
         assert(eng.composing().empty());
-        std::cout << "  PASS: \"'\" + miss -> no output\n";
+        std::cout << "  PASS: \"'\" + miss -> flush \"'\"\n";
         eng.reset();
     }
 
@@ -173,10 +171,9 @@ int main()
         eng.filter("/");
         eng.filter("h");
         eng.filter("e");
-        assert(eng.composing() == "ኀ");       // pending
-        eng.filter(" ");                       // commit trigger
+        assert(eng.composing().empty());        // leaf, auto-committed
         assert(eng.flush() == "ኀ");
-        std::cout << "  PASS: '/he' + space -> flush 'ኀ'\n";
+        std::cout << "  PASS: '/he' -> flush 'ኀ'\n";
         eng.reset();
     }
 
@@ -221,6 +218,34 @@ int main()
         std::string all = eng.flush();
         assert(all == "ሀለ");
         std::cout << "  PASS: accumulated flush = 'ሀለ'\n";
+        eng.reset();
+    }
+
+    // --- Test 18: finish_composition moves pending text to produced ---
+    {
+        eng.filter("h");
+        eng.filter("i");
+        assert(eng.composing() == "ሂ");
+        assert(eng.flush().empty());
+
+        eng.finish_composition();
+        assert(eng.composing().empty());
+        assert(eng.flush() == "ሂ");
+        std::cout << "  PASS: finish_composition flushes pending 'ሂ'\n";
+        eng.reset();
+    }
+
+    // --- Test 19: finish_composition with no pending text just resets ---
+    {
+        eng.filter("h");
+        eng.filter("W");
+        assert(eng.composing() == "hW");
+        assert(eng.flush().empty());
+
+        eng.finish_composition();
+        assert(eng.composing().empty());
+        assert(eng.flush().empty());
+        std::cout << "  PASS: finish_composition on 'hW' resets (no commit)\n";
         eng.reset();
     }
 

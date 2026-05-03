@@ -1,5 +1,6 @@
 /home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles/test_mapping.dir
 /home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles/test_engine.dir
+/home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles/test_features.dir
 /home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles/test_ibus_engine.dir
 /home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles/test.dir
 /home/moab/sources/ethiopic-keyboard/build-ibus-test/CMakeFiles/edit_cache.dir

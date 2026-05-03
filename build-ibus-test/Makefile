@@ -153,6 +153,19 @@ test_engine/fast:
 .PHONY : test_engine/fast
 
 #=============================================================================
+# Target rules for targets named test_features
+
+# Build rule for target.
+test_features: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_features
+.PHONY : test_features
+
+# fast build rule for target.
+test_features/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_features.dir/build.make CMakeFiles/test_features.dir/build
+.PHONY : test_features/fast
+
+#=============================================================================
 # Target rules for targets named test_ibus_engine
 
 # Build rule for target.
@@ -226,6 +239,30 @@ test_engine.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_engine.dir/build.make CMakeFiles/test_engine.dir/test_engine.cpp.s
 .PHONY : test_engine.cpp.s
 
+test_features.o: test_features.cpp.o
+.PHONY : test_features.o
+
+# target to build an object file
+test_features.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_features.dir/build.make CMakeFiles/test_features.dir/test_features.cpp.o
+.PHONY : test_features.cpp.o
+
+test_features.i: test_features.cpp.i
+.PHONY : test_features.i
+
+# target to preprocess a source file
+test_features.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_features.dir/build.make CMakeFiles/test_features.dir/test_features.cpp.i
+.PHONY : test_features.cpp.i
+
+test_features.s: test_features.cpp.s
+.PHONY : test_features.s
+
+# target to generate assembly for a file
+test_features.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_features.dir/build.make CMakeFiles/test_features.dir/test_features.cpp.s
+.PHONY : test_features.cpp.s
+
 test_ibus_engine.o: test_ibus_engine.cpp.o
 .PHONY : test_ibus_engine.o
 
@@ -285,6 +322,7 @@ help:
 	@echo "... test"
 	@echo "... ethio"
 	@echo "... test_engine"
+	@echo "... test_features"
 	@echo "... test_ibus_engine"
 	@echo "... test_mapping"
 	@echo "... home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.o"
@@ -293,6 +331,9 @@ help:
 	@echo "... test_engine.o"
 	@echo "... test_engine.i"
 	@echo "... test_engine.s"
+	@echo "... test_features.o"
+	@echo "... test_features.i"
+	@echo "... test_features.s"
 	@echo "... test_ibus_engine.o"
 	@echo "... test_ibus_engine.i"
 	@echo "... test_ibus_engine.s"
