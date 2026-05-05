@@ -132,19 +132,28 @@ int main()
     feed_key(ibus_engine, IBUS_KEY_h);
     feed_key(ibus_engine, IBUS_KEY_i);
     assert(last_preedit(engine) == "ሂ");
+    assert(engine->priv->core.cursor() == 1);
     feed_key(ibus_engine, IBUS_KEY_Left);
     assert(last_preedit(engine) == "ሂ");
     assert(last_commit(engine).empty());
-    std::cout << "  PASS: 'hi' + Left -> cursor moves (preedit stays)\n";
+    assert(engine->priv->core.cursor() == 0);
+    std::cout << "  PASS: 'hi' + Left -> cursor at 0 (preedit stays)\n";
+
+    feed_key(ibus_engine, IBUS_KEY_Right);
+    assert(last_preedit(engine) == "ሂ");
+    assert(engine->priv->core.cursor() == 1);
+    std::cout << "  PASS: 'hi' + Left + Right -> cursor back at 1\n";
 
     feed_key(ibus_engine, IBUS_KEY_Home);
     assert(last_preedit(engine) == "ሂ");
     assert(last_commit(engine).empty());
-    std::cout << "  PASS: 'hi' + Left + Home -> cursor at 0\n";
+    assert(engine->priv->core.cursor() == 0);
+    std::cout << "  PASS: 'hi' + Home -> cursor at 0\n";
 
     feed_key(ibus_engine, IBUS_KEY_End);
     assert(last_preedit(engine) == "ሂ");
-    std::cout << "  PASS: 'hi' + ... + End -> cursor at end\n";
+    assert(engine->priv->core.cursor() == 1);
+    std::cout << "  PASS: 'hi' + End -> cursor at end\n";
 
     // Test 11: Unmapped printable ASCII committed as text
     feed_key(ibus_engine, IBUS_KEY_space);
@@ -184,6 +193,29 @@ int main()
     assert(last_preedit(engine).empty());
     assert(last_commit(engine) == "ሂ");
     std::cout << "  PASS: 'hi' + Return -> commit 'ሂ'\n";
+
+    // Test 14b: Cursor moves within single-codepoint preedit
+    feed_key(ibus_engine, IBUS_KEY_h);
+    assert(last_preedit(engine) == "ህ");
+    assert(engine->priv->core.cursor() == 1);
+    // Verify byte offset: cp_pos 1 in "ህ" (3 bytes) => byte 3
+    assert(ethio::cp_offset_to_byte("ህ", 1) == 3);
+    feed_key(ibus_engine, IBUS_KEY_Left);
+    assert(last_preedit(engine) == "ህ");
+    assert(engine->priv->core.cursor() == 0);
+    // Verify byte offset: cp_pos 0 => byte 0
+    assert(ethio::cp_offset_to_byte("ህ", 0) == 0);
+    std::cout << "  PASS: 'h' + Left -> cursor cp 1->0 byte 3->0 (preedit stays)\n";
+
+    feed_key(ibus_engine, IBUS_KEY_Right);
+    assert(last_preedit(engine) == "ህ");
+    assert(engine->priv->core.cursor() == 1);
+    assert(ethio::cp_offset_to_byte("ህ", 1) == 3);
+    std::cout << "  PASS: 'h' + Left + Right -> cursor back cp=1 byte=3\n";
+
+    feed_key(ibus_engine, IBUS_KEY_space);
+    assert(last_commit(engine) == "ህ ");
+    std::cout << "  PASS: 'h' + Left + Right + space -> commit 'ህ '\n";
 
     g_object_unref(engine);
     std::cout << "\nAll IBus engine tests passed.\n";

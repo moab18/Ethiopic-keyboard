@@ -5,6 +5,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o
  /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.cpp
  /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h
  /usr/include/alloca.h
  /usr/include/asm-generic/bitsperlong.h
@@ -180,6 +181,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o
  /usr/include/c++/15/cerrno
  /usr/include/c++/15/clocale
  /usr/include/c++/15/concepts
+ /usr/include/c++/15/cstdarg
  /usr/include/c++/15/cstddef
  /usr/include/c++/15/cstdio
  /usr/include/c++/15/cstdlib
@@ -567,6 +569,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o
  /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/main.cpp
  /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h
  /usr/include/alloca.h
  /usr/include/asm-generic/bitsperlong.h
@@ -742,9 +745,11 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o
  /usr/include/c++/15/cerrno
  /usr/include/c++/15/clocale
  /usr/include/c++/15/concepts
+ /usr/include/c++/15/cstdarg
  /usr/include/c++/15/cstddef
  /usr/include/c++/15/cstdio
  /usr/include/c++/15/cstdlib
+ /usr/include/c++/15/cstring
  /usr/include/c++/15/cwchar
  /usr/include/c++/15/debug/assertions.h
  /usr/include/c++/15/debug/debug.h

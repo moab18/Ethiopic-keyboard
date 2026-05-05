@@ -5,8 +5,6 @@
 
 #include "ethio/json.hpp"
 
-using json = nlohmann::json;
-
 namespace ethio {
 
 static std::vector<std::string> split_utf8(std::string_view s)
@@ -74,7 +72,7 @@ MappingFile load_mapping_file(const std::string &json_path)
         throw std::runtime_error("Cannot open mapping file: " + json_path);
     }
 
-    json j;
+    Json j;
     ifs >> j;
 
     MappingFile mf;

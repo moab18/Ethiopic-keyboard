@@ -5,6 +5,7 @@ CMakeFiles/test_ibus_engine.dir/home/moab/sources/ethiopic-keyboard/ibus-ethiopi
  /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.cpp
  /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h
  /usr/include/alloca.h
  /usr/include/asm-generic/bitsperlong.h
@@ -180,6 +181,7 @@ CMakeFiles/test_ibus_engine.dir/home/moab/sources/ethiopic-keyboard/ibus-ethiopi
  /usr/include/c++/15/cerrno
  /usr/include/c++/15/clocale
  /usr/include/c++/15/concepts
+ /usr/include/c++/15/cstdarg
  /usr/include/c++/15/cstddef
  /usr/include/c++/15/cstdio
  /usr/include/c++/15/cstdlib

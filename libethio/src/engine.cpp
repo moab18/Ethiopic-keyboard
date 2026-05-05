@@ -25,15 +25,23 @@ void Engine::reset()
 
 void Engine::move_cursor_left()
 {
+    size_t old = cursor_pos_;
     if (cursor_pos_ > 0)
         cursor_pos_--;
+    logger.debug("ethio::Engine::move_cursor_left: %zu -> %zu (composing='%s' cp=%zu)",
+            old, cursor_pos_, std::string(composing()).c_str(),
+            utf8_codepoint_count(composing()));
 }
 
 void Engine::move_cursor_right()
 {
     size_t max_cp = utf8_codepoint_count(composing());
+    size_t old = cursor_pos_;
     if (cursor_pos_ < max_cp)
         cursor_pos_++;
+    logger.debug("ethio::Engine::move_cursor_right: %zu -> %zu (composing='%s' cp=%zu max=%zu)",
+            old, cursor_pos_, std::string(composing()).c_str(),
+            utf8_codepoint_count(composing()), max_cp);
 }
 
 void Engine::move_cursor_home()

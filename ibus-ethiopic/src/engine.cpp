@@ -114,13 +114,18 @@ static void preedit_update(IBusEthiopicEngine *self)
         return;
     }
 
+    size_t cursor_cp = self->priv->core.cursor();
+    size_t cursor_byte = ethio::cp_offset_to_byte(composing, cursor_cp);
+    ethio::logger.debug("preedit_update: cursor_cp=%zu cursor_byte=%zu "
+            "text='%s' text_bytes=%zu",
+            cursor_cp, cursor_byte, composing.data(), composing.size());
     IBusText *text = ibus_text_new_from_static_string(composing.data());
     text->attrs = ibus_attr_list_new();
     ibus_attr_list_append(text->attrs,
         ibus_attr_underline_new(IBUS_ATTR_UNDERLINE_SINGLE, 0,
                                 static_cast<guint>(composing.size())));
     ibus_engine_update_preedit_text(IBUS_ENGINE(self), text,
-                                    static_cast<guint>(self->priv->core.cursor()),
+                                    static_cast<guint>(cursor_byte),
                                     TRUE);
 }
 
@@ -130,6 +135,7 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
                                        guint keycode,
                                        guint state)
 {
+     ethio::logger.debug("process_key_event: is called.================");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
 
     if (state & IBUS_RELEASE_MASK) return FALSE;
@@ -172,14 +178,19 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     case IBUS_KEY_Return:
     case IBUS_KEY_KP_Enter:
+        if (self->priv->core.composing().empty())
+            return FALSE;
         self->priv->core.finish_composition();
         commit(self);
-        self->priv->last_preedit.clear();
-        defer_preedit_hide(self);
-        return TRUE;
+        preedit_update(self);
+        return FALSE;
 
     case IBUS_KEY_Left:
     case IBUS_KEY_KP_Left:
+        ethio::logger.debug("process_key_event: Left pressed "
+                "composing='%s' empty=%s",
+                std::string(self->priv->core.composing()).c_str(),
+                self->priv->core.composing().empty() ? "yes" : "no");
         if (self->priv->core.composing().empty())
             return FALSE;
         self->priv->core.move_cursor_left();
@@ -188,6 +199,10 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     case IBUS_KEY_Right:
     case IBUS_KEY_KP_Right:
+        ethio::logger.debug("process_key_event: Right pressed "
+                "composing='%s' empty=%s",
+                std::string(self->priv->core.composing()).c_str(),
+                self->priv->core.composing().empty() ? "yes" : "no");
         if (self->priv->core.composing().empty())
             return FALSE;
         self->priv->core.move_cursor_right();
@@ -258,18 +273,14 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
             std::string(self->priv->core.composing()).c_str(),
             std::string(self->priv->core.produced_text()).c_str());
 
-    commit(self);
-
     if (!handled) {
         ethio::logger.debug("process_key_event: unmapped key='%s', "
-                "committing as text", key.c_str());
-        self->priv->last_commit += key;
-        if (has_connection(self)) {
-            IBusText *ibus_text = ibus_text_new_from_static_string(key.c_str());
-            ibus_engine_commit_text(IBUS_ENGINE(self), ibus_text);
-        }
+                "appending to produced", key.c_str());
+        self->priv->core.append_produced(key);
         handled = true;
     }
+
+    commit(self);
 
     if (self->priv->core.composing().empty()) {
         self->priv->last_preedit.clear();
@@ -293,19 +304,23 @@ ibus_ethiopic_engine_set_content_type(IBusEngine *engine,
 static void
 ibus_ethiopic_engine_focus_out(IBusEngine *engine)
 {
+    ethio::logger.debug("focus_out: called");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
     if (self->priv->core.passthrough()) {
         self->priv->core.toggle_passthrough();
     }
-    self->priv->core.reset();
+    self->priv->core.finish_composition();
+    commit(self);
     preedit_update(self);
 }
 
 static void
 ibus_ethiopic_engine_reset(IBusEngine *engine)
 {
+    ethio::logger.debug("reset: called");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
-    self->priv->core.reset();
+    self->priv->core.finish_composition();
+    commit(self);
     preedit_update(self);
 }
 

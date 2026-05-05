@@ -4,6 +4,7 @@
 CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o: /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.cpp \
   /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.h \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h \
+  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
@@ -179,6 +180,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o: /home/moab/sources/ethiopi
   /usr/include/c++/15/cerrno \
   /usr/include/c++/15/clocale \
   /usr/include/c++/15/concepts \
+  /usr/include/c++/15/cstdarg \
   /usr/include/c++/15/cstddef \
   /usr/include/c++/15/cstdio \
   /usr/include/c++/15/cstdlib \
@@ -565,6 +567,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o: /home/moab/sources/ethiopi
 CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o: /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/main.cpp \
   /home/moab/sources/ethiopic-keyboard/ibus-ethiopic/src/engine.h \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h \
+  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
@@ -740,9 +743,11 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o: /home/moab/sources/ethiopic-
   /usr/include/c++/15/cerrno \
   /usr/include/c++/15/clocale \
   /usr/include/c++/15/concepts \
+  /usr/include/c++/15/cstdarg \
   /usr/include/c++/15/cstddef \
   /usr/include/c++/15/cstdio \
   /usr/include/c++/15/cstdlib \
+  /usr/include/c++/15/cstring \
   /usr/include/c++/15/cwchar \
   /usr/include/c++/15/debug/assertions.h \
   /usr/include/c++/15/debug/debug.h \
@@ -1193,6 +1198,8 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o:
 
 /lib64/ld-linux-x86-64.so.2:
 
+/usr/include/c++/15/cstring:
+
 /usr/lib64/glib-2.0/include/glibconfig.h:
 
 /usr/lib/gcc/x86_64-redhat-linux/15/include/syslimits.h:
@@ -1220,6 +1227,8 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o:
 /usr/include/stdio.h:
 
 /usr/include/stdc-predef.h:
+
+/usr/include/sched.h:
 
 /usr/include/glib-2.0/gio/gdbusmessage.h:
 
@@ -1301,10 +1310,6 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o:
 
 /usr/include/glib-2.0/glib/ghook.h:
 
-/lib64/libm.so.6:
-
-/usr/include/c++/15/pstl/pstl_config.h:
-
 /usr/include/bits/sigcontext.h:
 
 /usr/include/c++/15/pstl/execution_defs.h:
@@ -1342,6 +1347,8 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o:
 /usr/include/bits/types/siginfo_t.h:
 
 /usr/include/c++/15/debug/debug.h:
+
+/usr/include/c++/15/cstdarg:
 
 /usr/include/c++/15/concepts:
 
@@ -1467,7 +1474,9 @@ libethio/libethio.a:
 
 /usr/include/bits/types/timer_t.h:
 
-/usr/include/features.h:
+/usr/include/c++/15/initializer_list:
+
+/usr/include/c++/15/bits/exception.h:
 
 /usr/include/c++/15/bits/utility.h:
 
@@ -1519,10 +1528,6 @@ libethio/libethio.a:
 
 /usr/include/bits/types/mbstate_t.h:
 
-/usr/include/c++/15/x86_64-redhat-linux/bits/atomic_word.h:
-
-/usr/include/glib-2.0/gio/gremoteactiongroup.h:
-
 /usr/include/glib-2.0/glib/gmain.h:
 
 /usr/include/glib-2.0/gio/gio.h:
@@ -1557,6 +1562,12 @@ libethio/libethio.a:
 
 /usr/include/bits/posix1_lim.h:
 
+/usr/include/glib-2.0/glib/gscanner.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/glib-2.0/gobject/gvaluearray.h:
+
 /usr/include/c++/15/type_traits:
 
 /usr/include/c++/15/bits/refwrap.h:
@@ -1566,24 +1577,6 @@ libethio/libethio.a:
 /usr/include/bits/floatn.h:
 
 /usr/include/glib-2.0/glib.h:
-
-/usr/include/bits/endian.h:
-
-/usr/include/sys/ucontext.h:
-
-/usr/include/glib-2.0/gio/gdrive.h:
-
-/usr/include/glib-2.0/gio/gapplication.h:
-
-/usr/include/bits/types/struct___jmp_buf_tag.h:
-
-/usr/include/glib-2.0/glib/gerror.h:
-
-/usr/include/bits/types/__sigval_t.h:
-
-/usr/include/glib-2.0/gio/gioenums.h:
-
-/usr/include/gnu/stubs-64.h:
 
 /usr/include/bits/sigevent-consts.h:
 
@@ -1613,17 +1606,33 @@ libethio/libethio.a:
 
 /usr/include/bits/ss_flags.h:
 
+/usr/include/bits/endian.h:
+
+/usr/include/sys/ucontext.h:
+
+/usr/include/glib-2.0/gio/gdrive.h:
+
+/usr/include/glib-2.0/gio/gapplication.h:
+
+/usr/include/bits/types/struct___jmp_buf_tag.h:
+
+/usr/include/glib-2.0/glib/gerror.h:
+
+/usr/include/bits/types/__sigval_t.h:
+
+/usr/include/glib-2.0/gio/gioenums.h:
+
+/usr/include/gnu/stubs-64.h:
+
 /usr/include/ibus-1.0/ibusenumtypes.h:
+
+/usr/include/bits/sigstack.h:
 
 /usr/include/bits/pthread_stack_min-dynamic.h:
 
 /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h:
 
 /usr/include/asm-generic/errno-base.h:
-
-/usr/include/glib-2.0/gio/gdbusobject.h:
-
-/usr/include/asm-generic/bitsperlong.h:
 
 /usr/include/c++/15/bits/nested_exception.h:
 
@@ -1638,6 +1647,18 @@ libethio/libethio.a:
 /usr/include/glib-2.0/glib/gtree.h:
 
 /usr/include/asm-generic/int-ll64.h:
+
+/usr/include/features.h:
+
+/usr/include/bits/locale.h:
+
+/usr/include/bits/posix_opt.h:
+
+/usr/include/signal.h:
+
+/usr/include/bits/atomic_wide_counter.h:
+
+/usr/include/glib-2.0/gio/gpowerprofilemonitor.h:
 
 /usr/include/glib-2.0/gio/gbufferedinputstream.h:
 
@@ -1691,14 +1712,6 @@ libethio/libethio.a:
 
 /usr/include/ibus-1.0/ibusutil.h:
 
-/usr/include/bits/sigstack.h:
-
-/usr/include/glib-2.0/glib/gscanner.h:
-
-/usr/include/bits/types.h:
-
-/usr/include/glib-2.0/gobject/gvaluearray.h:
-
 /usr/include/glib-2.0/gio/gdataoutputstream.h:
 
 /usr/include/glib-2.0/gio/gunixconnection.h:
@@ -1719,11 +1732,9 @@ libethio/libethio.a:
 
 /usr/include/bits/endianness.h:
 
-/usr/include/bits/locale.h:
+/usr/include/glib-2.0/gio/gremoteactiongroup.h:
 
-/usr/include/bits/posix_opt.h:
-
-/usr/include/glib-2.0/gio/gpowerprofilemonitor.h:
+/usr/include/c++/15/x86_64-redhat-linux/bits/atomic_word.h:
 
 /usr/include/bits/struct_mutex.h:
 
@@ -1734,6 +1745,12 @@ libethio/libethio.a:
 /usr/include/glib-2.0/gio/gtlspassword.h:
 
 /usr/include/bits/thread-shared-types.h:
+
+/lib64/libm.so.6:
+
+/usr/include/c++/15/pstl/pstl_config.h:
+
+/home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h:
 
 /usr/include/c++/15/bits/requires_hosted.h:
 
@@ -1873,13 +1890,9 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o:
 
 /usr/include/ibus-1.0/ibusbus.h:
 
-/usr/include/c++/15/initializer_list:
+/usr/include/asm-generic/bitsperlong.h:
 
-/usr/include/c++/15/bits/exception.h:
-
-/usr/include/bits/atomic_wide_counter.h:
-
-/usr/include/signal.h:
+/usr/include/glib-2.0/gio/gdbusobject.h:
 
 /usr/include/glib-2.0/gio/gdbusobjectmanagerclient.h:
 
@@ -2334,5 +2347,3 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o:
 /usr/include/ibus-1.0/ibusproxy.h:
 
 /usr/include/linux/types.h:
-
-/usr/include/sched.h:

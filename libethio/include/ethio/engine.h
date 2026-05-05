@@ -26,6 +26,8 @@ inline size_t cp_offset_to_byte(std::string_view s, size_t cp_offset)
             cp++;
         byte++;
     }
+    while (byte < s.size() && (static_cast<unsigned char>(s[byte]) & 0xC0) == 0x80)
+        byte++;
     return byte;
 }
 
@@ -56,6 +58,8 @@ public:
     void finish_composition();
 
     std::string_view produced_text() const { return produced_; }
+
+    void append_produced(std::string_view s) { produced_.append(s); }
 
     bool passthrough() const { return passthrough_; }
     void toggle_passthrough() { passthrough_ = !passthrough_; }
