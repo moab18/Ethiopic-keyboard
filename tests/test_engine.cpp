@@ -155,14 +155,14 @@ int main()
         eng.reset();
     }
 
-    // --- Test 12: "'" + unmapped key flushes raw keys ---
+    // --- Test 12: "'" + unmapped key discards delimiter ---
     {
         eng.filter("'");
         assert(eng.composing() == "'");
-        eng.filter("#");                       // miss at ' → flush raw keys
-        assert(eng.flush() == "'");
+        eng.filter("#");                       // miss at ' → discard Commit node, retry
+        assert(eng.flush().empty());
         assert(eng.composing().empty());
-        std::cout << "  PASS: \"'\" + miss -> flush \"'\"\n";
+        std::cout << "  PASS: \"'\" + miss -> discard delimiter (no flush)\n";
         eng.reset();
     }
 

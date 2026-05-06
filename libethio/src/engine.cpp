@@ -109,7 +109,7 @@ bool Engine::filter(std::string_view key)
     if (!pending_text_.empty()) {
         produced_ += pending_text_;
         pending_text_.clear();
-    } else if (!composing_.empty()) {
+    } else if (!composing_.empty() && current_node_->action.type != ActionType::Commit) {
         produced_ += composing_;
     }
     reset();

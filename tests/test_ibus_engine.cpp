@@ -57,22 +57,16 @@ int main()
     assert(last_commit(engine) == "ሄ");
     std::cout << "  PASS: 'hie' -> commit 'ሄ'\n";
 
-    // Test 3: "hW" -> preedit "hW", then Left moves cursor (preedit stays)
+    // Test 3: Arrow keys during composition commit pending and pass through
     feed_key(ibus_engine, IBUS_KEY_h);
     feed_key(ibus_engine, IBUS_KEY_W);
     assert(last_preedit(engine) == "hW");
     std::cout << "  PASS: 'hW' -> preedit 'hW'\n";
 
     feed_key(ibus_engine, IBUS_KEY_Left);
-    assert(last_preedit(engine) == "hW");
-    assert(last_commit(engine).empty());
-    std::cout << "  PASS: 'hW' + Left -> cursor moves (preedit stays)\n";
-
-    // clean up: commit via space
-    feed_key(ibus_engine, IBUS_KEY_space);
-    assert(last_commit(engine) == "hW ");
     assert(last_preedit(engine).empty());
-    std::cout << "  PASS: 'hW' + Left + space -> commit 'hW '\n";
+    assert(last_commit(engine).empty());
+    std::cout << "  PASS: 'hW' + Left -> finish composition (reset), pass through\n";
 
     // Test 4: "'" delimiter
     feed_key(ibus_engine, IBUS_KEY_h);
@@ -128,42 +122,48 @@ int main()
     assert(last_commit(engine) == "ህ ");
     std::cout << "  PASS: 'h' + \"'\" + 'h' + space -> commit 'ህ '\n";
 
-    // Test 10: Arrow keys with preedit move cursor, preedit stays
+    // Test 10: Arrow keys during preedit commit and pass through
     feed_key(ibus_engine, IBUS_KEY_h);
     feed_key(ibus_engine, IBUS_KEY_i);
     assert(last_preedit(engine) == "ሂ");
-    assert(engine->priv->core.cursor() == 1);
     feed_key(ibus_engine, IBUS_KEY_Left);
-    assert(last_preedit(engine) == "ሂ");
-    assert(last_commit(engine).empty());
-    assert(engine->priv->core.cursor() == 0);
-    std::cout << "  PASS: 'hi' + Left -> cursor at 0 (preedit stays)\n";
+    assert(last_preedit(engine).empty());
+    assert(last_commit(engine) == "ሂ");
+    std::cout << "  PASS: 'hi' + Left -> finish composition, commit 'ሂ'\n";
 
+    feed_key(ibus_engine, IBUS_KEY_h);
+    feed_key(ibus_engine, IBUS_KEY_i);
+    assert(last_preedit(engine) == "ሂ");
     feed_key(ibus_engine, IBUS_KEY_Right);
-    assert(last_preedit(engine) == "ሂ");
-    assert(engine->priv->core.cursor() == 1);
-    std::cout << "  PASS: 'hi' + Left + Right -> cursor back at 1\n";
+    assert(last_preedit(engine).empty());
+    assert(last_commit(engine) == "ሂ");
+    std::cout << "  PASS: 'hi' + Right -> finish composition, commit 'ሂ'\n";
 
+    feed_key(ibus_engine, IBUS_KEY_h);
+    feed_key(ibus_engine, IBUS_KEY_i);
+    assert(last_preedit(engine) == "ሂ");
     feed_key(ibus_engine, IBUS_KEY_Home);
-    assert(last_preedit(engine) == "ሂ");
-    assert(last_commit(engine).empty());
-    assert(engine->priv->core.cursor() == 0);
-    std::cout << "  PASS: 'hi' + Home -> cursor at 0\n";
+    assert(last_preedit(engine).empty());
+    assert(last_commit(engine) == "ሂ");
+    std::cout << "  PASS: 'hi' + Home -> finish composition, commit 'ሂ'\n";
 
-    feed_key(ibus_engine, IBUS_KEY_End);
+    feed_key(ibus_engine, IBUS_KEY_h);
+    feed_key(ibus_engine, IBUS_KEY_i);
     assert(last_preedit(engine) == "ሂ");
-    assert(engine->priv->core.cursor() == 1);
-    std::cout << "  PASS: 'hi' + End -> cursor at end\n";
+    feed_key(ibus_engine, IBUS_KEY_End);
+    assert(last_preedit(engine).empty());
+    assert(last_commit(engine) == "ሂ");
+    std::cout << "  PASS: 'hi' + End -> finish composition, commit 'ሂ'\n";
 
     // Test 11: Unmapped printable ASCII committed as text
+    feed_key(ibus_engine, IBUS_KEY_h);
+    feed_key(ibus_engine, IBUS_KEY_i);
+    assert(last_preedit(engine) == "ሂ");
     feed_key(ibus_engine, IBUS_KEY_space);
     assert(last_preedit(engine).empty());
-    // space commits pending "ሂ" AND " " -> "ሂ " (pending from engine state)
-    // Actually the previous state has "ሂ" in pending_text_ at "hi" node
-    // Space triggers miss -> filter flushes "ሂ" to produced, then space is unmapped
     std::string s = last_commit(engine);
-    assert(s.find("ሂ") != std::string::npos);
-    std::cout << "  PASS: 'hi' + space commits pending\n";
+    assert(s == "ሂ ");
+    std::cout << "  PASS: 'hi' + space -> commit 'ሂ '\n";
 
     feed_key(ibus_engine, IBUS_KEY_numbersign);
     assert(last_preedit(engine).empty());
@@ -194,28 +194,13 @@ int main()
     assert(last_commit(engine) == "ሂ");
     std::cout << "  PASS: 'hi' + Return -> commit 'ሂ'\n";
 
-    // Test 14b: Cursor moves within single-codepoint preedit
+    // Test 14b: Arrow keys during preedit commit and pass through
     feed_key(ibus_engine, IBUS_KEY_h);
     assert(last_preedit(engine) == "ህ");
-    assert(engine->priv->core.cursor() == 1);
-    // Verify byte offset: cp_pos 1 in "ህ" (3 bytes) => byte 3
-    assert(ethio::cp_offset_to_byte("ህ", 1) == 3);
     feed_key(ibus_engine, IBUS_KEY_Left);
-    assert(last_preedit(engine) == "ህ");
-    assert(engine->priv->core.cursor() == 0);
-    // Verify byte offset: cp_pos 0 => byte 0
-    assert(ethio::cp_offset_to_byte("ህ", 0) == 0);
-    std::cout << "  PASS: 'h' + Left -> cursor cp 1->0 byte 3->0 (preedit stays)\n";
-
-    feed_key(ibus_engine, IBUS_KEY_Right);
-    assert(last_preedit(engine) == "ህ");
-    assert(engine->priv->core.cursor() == 1);
-    assert(ethio::cp_offset_to_byte("ህ", 1) == 3);
-    std::cout << "  PASS: 'h' + Left + Right -> cursor back cp=1 byte=3\n";
-
-    feed_key(ibus_engine, IBUS_KEY_space);
-    assert(last_commit(engine) == "ህ ");
-    std::cout << "  PASS: 'h' + Left + Right + space -> commit 'ህ '\n";
+    assert(last_preedit(engine).empty());
+    assert(last_commit(engine) == "ህ");
+    std::cout << "  PASS: 'h' + Left -> finish composition, commit 'ህ'\n";
 
     g_object_unref(engine);
     std::cout << "\nAll IBus engine tests passed.\n";

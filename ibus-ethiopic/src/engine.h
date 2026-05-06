@@ -22,7 +22,7 @@ typedef struct _IBusEthiopicEngine {
     IBusEngine parent;
 
     IBusEthiopicEnginePrivate *priv;
-    bool is_password_field;
+    bool is_sensitive_field;
 } IBusEthiopicEngine;
 
 typedef struct _IBusEthiopicEngineClass {

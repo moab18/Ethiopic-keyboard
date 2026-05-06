@@ -87,8 +87,33 @@ private:
 
     void skip_ws()
     {
-        while (ch_ > 0 && std::isspace(static_cast<unsigned char>(ch_)))
-            next();
+        for (;;) {
+            while (ch_ > 0 && std::isspace(static_cast<unsigned char>(ch_)))
+                next();
+            if (ch_ == '/') {
+                next();
+                if (ch_ == '/') {
+                    while (ch_ > 0 && ch_ != '\n')
+                        next();
+                } else if (ch_ == '*') {
+                    next();
+                    for (;;) {
+                        if (ch_ <= 0)
+                            throw std::runtime_error("Json: unterminated comment");
+                        if (ch_ == '*') {
+                            next();
+                            if (ch_ == '/') { next(); break; }
+                        } else {
+                            next();
+                        }
+                    }
+                } else {
+                    throw std::runtime_error("Json: unexpected '/'");
+                }
+            } else {
+                break;
+            }
+        }
     }
 
     void parse_value(Json &j)

@@ -50,7 +50,7 @@ ethiopic-keyboard/
 
 ```bash
 # Configure (debug build)
-cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+cmake -B build  -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 
 # Build
 cmake --build build

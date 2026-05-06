@@ -142,7 +142,7 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     if (state & IBUS_MOD4_MASK) return FALSE;
 
-    if (self->is_password_field) return FALSE;
+    if (self->is_sensitive_field) return FALSE;
 
     if ((state & IBUS_CONTROL_MASK) &&
         (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R)) {
@@ -178,76 +178,34 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     case IBUS_KEY_Return:
     case IBUS_KEY_KP_Enter:
+    case IBUS_KEY_Left:
+    case IBUS_KEY_KP_Left:
+    case IBUS_KEY_Right:
+    case IBUS_KEY_KP_Right:
+    case IBUS_KEY_Home:
+    case IBUS_KEY_KP_Home:
+    case IBUS_KEY_End:
+    case IBUS_KEY_KP_End:
+    case IBUS_KEY_Up:
+    case IBUS_KEY_KP_Up:
+    case IBUS_KEY_Down:
+    case IBUS_KEY_KP_Down:
+    case IBUS_KEY_Page_Up:
+    case IBUS_KEY_KP_Page_Up:
+    case IBUS_KEY_Page_Down:
+    case IBUS_KEY_KP_Page_Down:
+    case IBUS_BUTTON1_MASK:
+    case IBUS_BUTTON2_MASK:
+    case IBUS_BUTTON3_MASK:
+    case IBUS_BUTTON4_MASK:
+    case IBUS_BUTTON5_MASK:
+
         if (self->priv->core.composing().empty())
             return FALSE;
         self->priv->core.finish_composition();
         commit(self);
         preedit_update(self);
         return FALSE;
-
-    case IBUS_KEY_Left:
-    case IBUS_KEY_KP_Left:
-        ethio::logger.debug("process_key_event: Left pressed "
-                "composing='%s' empty=%s",
-                std::string(self->priv->core.composing()).c_str(),
-                self->priv->core.composing().empty() ? "yes" : "no");
-        if (self->priv->core.composing().empty())
-            return FALSE;
-        self->priv->core.move_cursor_left();
-        preedit_update(self);
-        return TRUE;
-
-    case IBUS_KEY_Right:
-    case IBUS_KEY_KP_Right:
-        ethio::logger.debug("process_key_event: Right pressed "
-                "composing='%s' empty=%s",
-                std::string(self->priv->core.composing()).c_str(),
-                self->priv->core.composing().empty() ? "yes" : "no");
-        if (self->priv->core.composing().empty())
-            return FALSE;
-        self->priv->core.move_cursor_right();
-        preedit_update(self);
-        return TRUE;
-
-    case IBUS_KEY_Home:
-    case IBUS_KEY_KP_Home:
-        if (self->priv->core.composing().empty())
-            return FALSE;
-        self->priv->core.move_cursor_home();
-        preedit_update(self);
-        return TRUE;
-
-    case IBUS_KEY_End:
-    case IBUS_KEY_KP_End:
-        if (self->priv->core.composing().empty())
-            return FALSE;
-        self->priv->core.move_cursor_end();
-        preedit_update(self);
-        return TRUE;
-
-    case IBUS_KEY_Up:
-    case IBUS_KEY_KP_Up:
-        if (self->priv->core.composing().empty())
-            return FALSE;
-        self->priv->core.move_cursor_home();
-        preedit_update(self);
-        return TRUE;
-
-    case IBUS_KEY_Down:
-    case IBUS_KEY_KP_Down:
-        if (self->priv->core.composing().empty())
-            return FALSE;
-        self->priv->core.move_cursor_end();
-        preedit_update(self);
-        return TRUE;
-
-    case IBUS_KEY_Page_Up:
-    case IBUS_KEY_KP_Page_Up:
-    case IBUS_KEY_Page_Down:
-    case IBUS_KEY_KP_Page_Down:
-        if (self->priv->core.composing().empty())
-            return FALSE;
-        return TRUE;
 
     default:
         break;
@@ -298,7 +256,8 @@ ibus_ethiopic_engine_set_content_type(IBusEngine *engine,
                                       guint hints)
 {
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
-    self->is_password_field = (purpose == IBUS_INPUT_PURPOSE_PASSWORD);
+    self->is_sensitive_field = (purpose == IBUS_INPUT_PURPOSE_PASSWORD ||
+                                purpose == IBUS_INPUT_PURPOSE_PIN);
 }
 
 static void
@@ -309,8 +268,7 @@ ibus_ethiopic_engine_focus_out(IBusEngine *engine)
     if (self->priv->core.passthrough()) {
         self->priv->core.toggle_passthrough();
     }
-    self->priv->core.finish_composition();
-    commit(self);
+    self->priv->core.reset();
     preedit_update(self);
 }
 
@@ -319,8 +277,7 @@ ibus_ethiopic_engine_reset(IBusEngine *engine)
 {
     ethio::logger.debug("reset: called");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
-    self->priv->core.finish_composition();
-    commit(self);
+    self->priv->core.reset();
     preedit_update(self);
 }
 
@@ -330,7 +287,7 @@ ibus_ethiopic_engine_init(IBusEthiopicEngine *self)
     ethio::logger.debug("init: engine instance created");
 
     self->priv = new IBusEthiopicEnginePrivate();
-    self->is_password_field = false;
+    self->is_sensitive_field = false;
 
     ensure_mapping();
     if (!shared_mapping.states.empty()) {
