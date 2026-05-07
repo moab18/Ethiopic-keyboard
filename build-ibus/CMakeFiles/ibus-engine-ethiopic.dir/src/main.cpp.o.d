@@ -456,5 +456,6 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o: \
  /usr/include/c++/15/bits/stl_vector.h \
  /usr/include/c++/15/bits/stl_bvector.h \
  /usr/include/c++/15/bits/vector.tcc \
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/wordlist.h \
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
  /usr/include/c++/15/cstdarg

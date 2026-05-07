@@ -7,6 +7,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/engine.cpp.o
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/wordlist.h
  /usr/include/alloca.h
  /usr/include/asm-generic/bitsperlong.h
  /usr/include/asm-generic/errno-base.h
@@ -571,6 +572,7 @@ CMakeFiles/ibus-engine-ethiopic.dir/src/main.cpp.o
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/engine.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h
  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/wordlist.h
  /usr/include/alloca.h
  /usr/include/asm-generic/bitsperlong.h
  /usr/include/asm-generic/errno-base.h

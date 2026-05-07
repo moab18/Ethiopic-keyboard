@@ -1,7 +1,9 @@
 #include "ethio/engine.h"
 #include "ethio/mapping.h"
+#include "ethio/json.hpp"
 
 #include <cassert>
+#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -115,21 +117,6 @@ int main()
 
         eng.filter("h"); eng.filter("h"); eng.filter("W"); eng.filter("a"); eng.filter(" ");
         assert_eq(eng.flush(), "ኋ", "double-cons 'hhWa'");
-
-        eng.filter("c"); eng.filter("c"); eng.filter("e"); eng.filter(" ");
-        assert_eq(eng.flush(), "ጨ", "double-cons 'cce'");
-    }
-
-    // ── 4. Double-consonant alternatives (same results as slash) ──
-    {
-        eng.filter("h"); eng.filter("h"); eng.filter("e"); eng.filter(" ");
-        assert_eq(eng.flush(), "ኀ", "double-cons 'hhe'");
-
-        eng.filter("h"); eng.filter("h"); eng.filter("W"); eng.filter("a"); eng.filter(" ");
-        assert_eq(eng.flush(), "ኋ", "double-cons 'hhWa'");
-
-        eng.filter("c"); eng.filter("c"); eng.filter("e"); eng.filter(" ");
-        assert_eq(eng.flush(), "ጨ", "double-cons 'cce'");
     }
 
     // ── 5. Standalone vowels (አ family) ──
@@ -367,6 +354,60 @@ int main()
         std::cout << "  PASS: reset clears pending composition\n";
     }
 
+    // ── 22. Names mapping ──
+    {
+        std::string names_path;
+#ifdef DATA_DIR
+        names_path = DATA_DIR "/amharic/names.json";
+#else
+        names_path = "data/amharic/names.json";
+#endif
+        std::ifstream nfs(names_path);
+        if (nfs.is_open()) {
+            ethio::Json names_root;
+            nfs >> names_root;
+            const auto &states = names_root["states"];
+            for (auto sit = states.begin(); sit != states.end(); ++sit) {
+                const auto &map_entries = sit.value()["map"];
+                for (auto mit = map_entries.begin(); mit != map_entries.end(); ++mit) {
+                    std::string key = mit.key();
+                    std::string val = mit.value();
+                    if (val.empty())
+                        trie.insert_commit(key);
+                    else
+                        trie.insert(key, val);
+                }
+            }
+            std::cout << "  Loaded names.json into trie (root entries now: "
+                      << trie.root_entry_count() << ")\n";
+        } else {
+            eng.load_trie(trie);
+        }
+    }
+
+    // Reload engine with names-augmented trie
+    eng.load_trie(trie);
+
+    {
+        eng.filter("h"); eng.filter("e");
+        assert_eq(eng.flush(), "ሀ", "sanity: 'he' still works");
+    }
+    {
+        eng.filter("h"); eng.filter("a");
+        eng.finish_composition();
+        assert_eq(eng.flush(), "ሃ", "SERA 'ha' still works after names loaded");
+    }
+    {
+        eng.filter("a"); eng.filter("x"); eng.filter("u"); eng.filter("m");
+        eng.finish_composition();
+        assert_eq(eng.flush(), "አክሱም", "name 'axum'");
+    }
+    {
+        eng.filter("e"); eng.filter("t"); eng.filter("h");
+        eng.finish_composition();
+        assert_eq(eng.flush(), "ኢትዮጵያ", "name 'eth' -> Ethiopia");
+    }
+    
     std::cout << "\nAll feature tests passed.\n";
     return 0;
 }

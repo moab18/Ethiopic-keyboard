@@ -4,6 +4,9 @@
 
 #include "ethio/logger.h"
 #include "ethio/mapping.h"
+#include "ethio/json.hpp"
+
+#include <fstream>
 
 #ifndef MAPPING_DIR
 #define MAPPING_DIR "data"
@@ -15,7 +18,19 @@
 G_DEFINE_TYPE(IBusEthiopicEngine, ibus_ethiopic_engine, IBUS_TYPE_ENGINE)
 
 static ethio::MappingFile shared_mapping;
+static ethio::WordList shared_wordlist;
 static bool mapping_loaded = false;
+
+static std::string find_data_file(const std::string &relative_path)
+{
+    const char *paths[] = {MAPPING_DIR, MAPPING_SOURCE_DIR, nullptr};
+    for (int i = 0; paths[i]; i++) {
+        std::string full = std::string(paths[i]) + "/" + relative_path;
+        if (g_file_test(full.c_str(), G_FILE_TEST_EXISTS))
+            return full;
+    }
+    return "";
+}
 
 static void ensure_mapping()
 {
@@ -24,39 +39,84 @@ static void ensure_mapping()
     ethio::logger.debug("ensure_mapping: MAPPING_DIR=%s MAPPING_SOURCE_DIR=%s",
             MAPPING_DIR, MAPPING_SOURCE_DIR);
 
-    const char *paths[] = {MAPPING_DIR, MAPPING_SOURCE_DIR, nullptr};
-    for (int i = 0; paths[i]; i++) {
-        std::string full = std::string(paths[i]) + "/amharic/am-sera.json";
-        ethio::logger.debug("ensure_mapping: trying path %s", full.c_str());
-        ethio::logger.info("ensure_mapping: trying path %s", full.c_str());
-        if (g_file_test(full.c_str(), G_FILE_TEST_EXISTS)) {
-            ethio::logger.debug("ensure_mapping: file found at %s, loading...",
-                    full.c_str());
-            try {
-                shared_mapping = ethio::load_mapping_file(full);
-                mapping_loaded = true;
-                ethio::logger.debug("ensure_mapping: loaded %zu state(s) "
-                        "input_method=%s title=%s",
-                        shared_mapping.states.size(),
-                        shared_mapping.input_method.c_str(),
-                        shared_mapping.title.c_str());
-                if (!shared_mapping.states.empty()) {
-                    ethio::logger.debug("ensure_mapping: state[0] '%s' has "
-                            "%zu root entries",
-                            shared_mapping.states[0].name.c_str(),
-                            shared_mapping.states[0].trie.root_entry_count());
-                }
-                return;
-            } catch (const std::exception &e) {
-                ethio::logger.warning("Error loading mapping from %s: %s",
-                        full.c_str(), e.what());
-            }
-        } else {
-            ethio::logger.debug("ensure_mapping: file NOT found at %s",
-                    full.c_str());
+    std::string mapping_path = find_data_file("amharic/am-sera.json");
+    if (!mapping_path.empty()) {
+        ethio::logger.debug("ensure_mapping: loading mapping from %s",
+                mapping_path.c_str());
+        try {
+            shared_mapping = ethio::load_mapping_file(mapping_path);
+            mapping_loaded = true;
+            ethio::logger.debug("ensure_mapping: loaded %zu state(s) "
+                    "input_method=%s title=%s",
+                    shared_mapping.states.size(),
+                    shared_mapping.input_method.c_str(),
+                    shared_mapping.title.c_str());
+        } catch (const std::exception &e) {
+            ethio::logger.warning("Error loading mapping: %s", e.what());
         }
+    } else {
+        ethio::logger.warning("Could not find am-sera.json in any search path");
+        return;
     }
-    ethio::logger.warning("Could not find am-sera.json in any search path");
+
+    std::string wordlist_path = find_data_file("amharic/wordlist.json");
+    if (!wordlist_path.empty()) {
+        ethio::logger.debug("ensure_mapping: loading wordlist from %s",
+                wordlist_path.c_str());
+        try {
+            shared_wordlist.load(wordlist_path);
+            ethio::logger.debug("ensure_mapping: loaded %zu words",
+                    shared_wordlist.size());
+        } catch (const std::exception &e) {
+            ethio::logger.warning("Error loading wordlist: %s", e.what());
+        }
+    } else {
+        ethio::logger.debug("ensure_mapping: no wordlist.json found");
+    }
+
+    std::string bigrams_path = find_data_file("amharic/bigrams.json");
+    if (!bigrams_path.empty()) {
+        ethio::logger.debug("ensure_mapping: loading bigrams from %s",
+                bigrams_path.c_str());
+        try {
+            shared_wordlist.load_bigrams(bigrams_path);
+            ethio::logger.debug("ensure_mapping: loaded bigrams");
+        } catch (const std::exception &e) {
+            ethio::logger.warning("Error loading bigrams: %s", e.what());
+        }
+    } else {
+        ethio::logger.debug("ensure_mapping: no bigrams.json found");
+    }
+
+    std::string names_path = find_data_file("amharic/names.json");
+    if (!names_path.empty()) {
+        ethio::logger.debug("ensure_mapping: loading names from %s",
+                names_path.c_str());
+        try {
+            std::ifstream nfs(names_path);
+            ethio::Json names_root;
+            nfs >> names_root;
+            const auto &states = names_root["states"];
+            int count = 0;
+            for (auto sit = states.begin(); sit != states.end(); ++sit) {
+                const auto &map_entries = sit.value()["map"];
+                for (auto mit = map_entries.begin(); mit != map_entries.end(); ++mit) {
+                    std::string key = mit.key();
+                    std::string val = mit.value();
+                    if (val.empty())
+                        shared_mapping.states[0].trie.insert_commit(key);
+                    else
+                        shared_mapping.states[0].trie.insert(key, val);
+                    count++;
+                }
+            }
+            ethio::logger.debug("ensure_mapping: loaded %d name entries", count);
+        } catch (const std::exception &e) {
+            ethio::logger.warning("Error loading names: %s", e.what());
+        }
+    } else {
+        ethio::logger.debug("ensure_mapping: no names.json found");
+    }
 }
 
 static bool has_connection(IBusEthiopicEngine *self)
@@ -79,6 +139,79 @@ static void defer_preedit_hide(IBusEthiopicEngine *self)
     g_idle_add(deferred_preedit_hide_cb, g_object_ref(self));
 }
 
+static bool is_word_boundary(const std::string &s)
+{
+    return s == " " || s == "\n" ||
+           s == "፡" || s == "።" || s == "፣" || s == "፤" || s == "፥" || s == "፦";
+}
+
+static void commit(IBusEthiopicEngine *self);
+
+static void hide_lookup(IBusEthiopicEngine *self)
+{
+    if (!self->priv->lookup_table) return;
+    ibus_lookup_table_clear(self->priv->lookup_table);
+    ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+            self->priv->lookup_table, FALSE);
+    g_object_unref(self->priv->lookup_table);
+    self->priv->lookup_table = nullptr;
+}
+
+static void show_suggestions(IBusEthiopicEngine *self)
+{
+    std::vector<std::string> results;
+
+    if (!self->priv->word_buffer.empty()) {
+        results = self->priv->wordlist.suggest(self->priv->word_buffer, 8);
+    } else if (!self->priv->last_word.empty()) {
+        results = self->priv->wordlist.suggest_next(self->priv->last_word, 8);
+    }
+
+    if (results.empty()) {
+        results = self->priv->wordlist.top_words(8);
+    }
+
+    if (results.empty()) return;
+
+    hide_lookup(self);
+
+    self->priv->lookup_table = ibus_lookup_table_new(8, 0, TRUE, TRUE);
+    g_object_ref_sink(self->priv->lookup_table);
+
+    for (const auto &w : results) {
+        IBusText *t = ibus_text_new_from_string(w.c_str());
+        ibus_lookup_table_append_candidate(self->priv->lookup_table, t);
+    }
+
+    ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+            self->priv->lookup_table, TRUE);
+}
+
+static void accept_candidate(IBusEthiopicEngine *self)
+{
+    if (!self->priv->lookup_table) return;
+
+    guint idx = ibus_lookup_table_get_cursor_pos(self->priv->lookup_table);
+    IBusText *candidate = ibus_lookup_table_get_candidate(
+            self->priv->lookup_table, idx);
+
+    if (candidate) {
+        std::string full(candidate->text);
+        if (full.size() > self->priv->word_buffer.size() &&
+            full.compare(0, self->priv->word_buffer.size(),
+                         self->priv->word_buffer) == 0) {
+            std::string suffix = full.substr(self->priv->word_buffer.size());
+            suffix += " ";
+            self->priv->core.append_produced(suffix);
+            commit(self);
+            self->priv->last_preedit.clear();
+            defer_preedit_hide(self);
+        }
+    }
+
+    hide_lookup(self);
+}
+
 static void commit(IBusEthiopicEngine *self)
 {
     std::string text = self->priv->core.flush();
@@ -87,6 +220,13 @@ static void commit(IBusEthiopicEngine *self)
     ethio::logger.debug("commit: committing text='%s'", text.c_str());
 
     self->priv->last_commit = text;
+
+    if (is_word_boundary(text)) {
+        self->priv->last_word = self->priv->word_buffer;
+        self->priv->word_buffer.clear();
+    } else {
+        self->priv->word_buffer += text;
+    }
 
     if (!has_connection(self)) return;
 
@@ -144,16 +284,65 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     if (self->is_sensitive_field) return FALSE;
 
-    if ((state & IBUS_CONTROL_MASK) &&
-        (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R)) {
-        self->priv->core.toggle_passthrough();
-        self->priv->core.reset();
-        commit(self);
-        preedit_update(self);
-        return TRUE;
+    if (state & IBUS_CONTROL_MASK) {
+        if (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R) {
+            self->priv->core.toggle_passthrough();
+            self->priv->core.reset();
+            commit(self);
+            preedit_update(self);
+            hide_lookup(self);
+            return TRUE;
+        }
+        if (keyval == IBUS_KEY_space) {
+            self->priv->core.finish_composition();
+            commit(self);
+            preedit_update(self);
+            show_suggestions(self);
+            return TRUE;
+        }
+        return FALSE;
     }
 
     if (self->priv->core.passthrough()) return FALSE;
+
+    if (self->priv->lookup_table &&
+        (keyval == IBUS_KEY_Tab || keyval == IBUS_ISO_Left_Tab)) {
+        if (keyval == IBUS_ISO_Left_Tab) {
+            guint pos = ibus_lookup_table_get_cursor_pos(
+                    self->priv->lookup_table);
+            if (pos == 0) {
+                guint n = ibus_lookup_table_get_number_of_candidates(
+                        self->priv->lookup_table);
+                ibus_lookup_table_set_cursor_pos(self->priv->lookup_table, n - 1);
+            } else {
+                ibus_lookup_table_cursor_up(self->priv->lookup_table);
+            }
+        } else {
+            guint n = ibus_lookup_table_get_number_of_candidates(
+                    self->priv->lookup_table);
+            guint pos = ibus_lookup_table_get_cursor_pos(
+                    self->priv->lookup_table);
+            if (pos + 1 >= n) {
+                accept_candidate(self);
+                return TRUE;
+            }
+            ibus_lookup_table_cursor_down(self->priv->lookup_table);
+        }
+        ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+                self->priv->lookup_table, TRUE);
+        return TRUE;
+    }
+
+    if (self->priv->lookup_table) {
+        if (keyval == IBUS_KEY_Return || keyval == IBUS_KEY_KP_Enter ||
+            keyval == IBUS_KEY_space) {
+            self->priv->core.finish_composition();
+            commit(self);
+            accept_candidate(self);
+            return TRUE;
+        }
+        hide_lookup(self);
+    }
 
     switch (keyval) {
     case IBUS_KEY_Escape:
@@ -240,6 +429,10 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     commit(self);
 
+    if (self->priv->word_buffer.empty() && !self->priv->last_word.empty()) {
+        show_suggestions(self);
+    }
+
     if (self->priv->core.composing().empty()) {
         self->priv->last_preedit.clear();
         defer_preedit_hide(self);
@@ -265,6 +458,9 @@ ibus_ethiopic_engine_focus_out(IBusEngine *engine)
 {
     ethio::logger.debug("focus_out: called");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    hide_lookup(self);
+    self->priv->word_buffer.clear();
+    self->priv->last_word.clear();
     if (self->priv->core.passthrough()) {
         self->priv->core.toggle_passthrough();
     }
@@ -277,6 +473,9 @@ ibus_ethiopic_engine_reset(IBusEngine *engine)
 {
     ethio::logger.debug("reset: called");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    hide_lookup(self);
+    self->priv->word_buffer.clear();
+    self->priv->last_word.clear();
     self->priv->core.reset();
     preedit_update(self);
 }
@@ -298,12 +497,15 @@ ibus_ethiopic_engine_init(IBusEthiopicEngine *self)
         ethio::logger.warning("init: no mapping states available, "
                 "trie will be empty");
     }
+
+    self->priv->wordlist = shared_wordlist;
 }
 
 static void
 ibus_ethiopic_engine_finalize(GObject *obj)
 {
     auto *self = IBUS_ETHIOPIC_ENGINE(obj);
+    hide_lookup(self);
     delete self->priv;
     self->priv = nullptr;
     G_OBJECT_CLASS(ibus_ethiopic_engine_parent_class)->finalize(obj);

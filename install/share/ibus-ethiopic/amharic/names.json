@@ -1,0 +1,18 @@
+{
+  "input_method": "am-sera-names",
+  "title": "Amharic (SERA) – Common Names & Places",
+  "description": "Direct SERA romanizations of common Ethiopian personal names, place names, and name-building patterns. Loaded alongside the main SERA mapping into the same trie.",
+  "version": "1.0.0",
+  "states": {
+    "init": {
+      "map": {
+        "axum": "አክሱም",
+        "ethiopia": "ኢትዮጵያ",
+        "gondar":"ጎንደር",
+        "addis":"አዲስ",
+        "china":"ቻይና",
+        "india":"ህንድ"
+      }
+    }
+  }
+}

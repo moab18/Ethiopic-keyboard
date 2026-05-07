@@ -5,6 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/ethio.dir/src/logger.cpp.o.d"
   "CMakeFiles/ethio.dir/src/mapping.cpp.o"
   "CMakeFiles/ethio.dir/src/mapping.cpp.o.d"
+  "CMakeFiles/ethio.dir/src/wordlist.cpp.o"
+  "CMakeFiles/ethio.dir/src/wordlist.cpp.o.d"
   "libethio.a"
   "libethio.pdb"
 )

@@ -107,12 +107,12 @@ libethio/clean: libethio/CMakeFiles/ethio.dir/clean
 CMakeFiles/ibus-engine-ethiopic.dir/all: libethio/CMakeFiles/ethio.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ibus-engine-ethiopic.dir/build.make CMakeFiles/ibus-engine-ethiopic.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ibus-engine-ethiopic.dir/build.make CMakeFiles/ibus-engine-ethiopic.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=5,6,7 "Built target ibus-engine-ethiopic"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=6,7,8 "Built target ibus-engine-ethiopic"
 .PHONY : CMakeFiles/ibus-engine-ethiopic.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/ibus-engine-ethiopic.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles 7
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles 8
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/ibus-engine-ethiopic.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles 0
 .PHONY : CMakeFiles/ibus-engine-ethiopic.dir/rule
@@ -124,7 +124,7 @@ ibus-engine-ethiopic: CMakeFiles/ibus-engine-ethiopic.dir/rule
 # codegen rule for target.
 CMakeFiles/ibus-engine-ethiopic.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ibus-engine-ethiopic.dir/build.make CMakeFiles/ibus-engine-ethiopic.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=5,6,7 "Finished codegen for target ibus-engine-ethiopic"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=6,7,8 "Finished codegen for target ibus-engine-ethiopic"
 .PHONY : CMakeFiles/ibus-engine-ethiopic.dir/codegen
 
 # clean rule for target.
@@ -139,12 +139,12 @@ CMakeFiles/ibus-engine-ethiopic.dir/clean:
 libethio/CMakeFiles/ethio.dir/all:
 	$(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/depend
 	$(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=1,2,3,4 "Built target ethio"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=1,2,3,4,5 "Built target ethio"
 .PHONY : libethio/CMakeFiles/ethio.dir/all
 
 # Build rule for subdir invocation for target.
 libethio/CMakeFiles/ethio.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles 4
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles 5
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 libethio/CMakeFiles/ethio.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles 0
 .PHONY : libethio/CMakeFiles/ethio.dir/rule
@@ -156,7 +156,7 @@ ethio: libethio/CMakeFiles/ethio.dir/rule
 # codegen rule for target.
 libethio/CMakeFiles/ethio.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=1,2,3,4 "Finished codegen for target ethio"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/moab/sources/ethiopic-keyboard/build-ibus/CMakeFiles --progress-num=1,2,3,4,5 "Finished codegen for target ethio"
 .PHONY : libethio/CMakeFiles/ethio.dir/codegen
 
 # clean rule for target.

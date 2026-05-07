@@ -30,7 +30,7 @@ static void print_engines_xml()
     std::printf("        <icon>ibus-ethiopic</icon>\n");
     std::printf("        <layout>us</layout>\n");
     std::printf("        <rank>0</rank>\n");
-    std::printf("        <symbol>&#x1200;</symbol>\n");
+    std::printf("        <symbol>&#x12A0;&#x121B;</symbol>\n");
     std::printf("    </engine>\n");
     std::printf("</engines>\n");
 }

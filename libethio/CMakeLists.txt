@@ -10,12 +10,14 @@ set(HEADERS
     include/ethio/engine.h
     include/ethio/logger.h
     include/ethio/json.hpp
+    include/ethio/wordlist.h
 )
 
 set(SOURCES
     src/mapping.cpp
     src/engine.cpp
     src/logger.cpp
+    src/wordlist.cpp
 )
 
 add_library(ethio STATIC ${SOURCES} ${HEADERS})

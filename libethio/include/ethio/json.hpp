@@ -49,6 +49,15 @@ public:
         return it->second.str_;
     }
 
+    bool is_array() const { return is_arr_; }
+    size_t arr_size() const { return is_arr_ ? arr_.size() : 0; }
+
+    const Json &operator[](size_t idx) const
+    {
+        if (!is_arr_) throw std::runtime_error("Json: not an array");
+        return arr_.at(idx);
+    }
+
     operator std::string() const { return is_str_ ? str_ : ""; }
 
     friend std::istream &operator>>(std::istream &is, Json &j);
@@ -57,8 +66,10 @@ private:
     friend class Parser;
     bool is_obj_ = false;
     bool is_str_ = false;
+    bool is_arr_ = false;
     std::string str_;
     std::unordered_map<std::string, Json> obj_;
+    std::vector<Json> arr_;
 };
 
 class Parser {
@@ -125,6 +136,9 @@ private:
         } else if (ch_ == '{') {
             j.is_obj_ = true;
             parse_object(j);
+        } else if (ch_ == '[') {
+            j.is_arr_ = true;
+            parse_array(j);
         } else {
             throw std::runtime_error(std::string("Json: unexpected char '") +
                                      static_cast<char>(ch_) + "'");
@@ -146,6 +160,22 @@ private:
             j.obj_[std::move(key)] = std::move(val);
             skip_ws();
             if (ch_ == '}') { next(); return; }
+            expect(',');
+        }
+    }
+
+    void parse_array(Json &j)
+    {
+        expect('[');
+        skip_ws();
+        if (ch_ == ']') { next(); return; }
+        for (;;) {
+            skip_ws();
+            Json val;
+            parse_value(val);
+            j.arr_.push_back(std::move(val));
+            skip_ws();
+            if (ch_ == ']') { next(); return; }
             expect(',');
         }
     }

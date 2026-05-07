@@ -202,6 +202,51 @@ int main()
     assert(last_commit(engine) == "ህ");
     std::cout << "  PASS: 'h' + Left -> finish composition, commit 'ህ'\n";
 
+    // Test 15: word_buffer accumulates committed syllables
+    IBUS_ENGINE_GET_CLASS(engine)->reset(IBUS_ENGINE(engine));
+    assert(engine->priv->word_buffer.empty());
+    assert(engine->priv->last_word.empty());
+    feed_key(ibus_engine, IBUS_KEY_h);
+    feed_key(ibus_engine, IBUS_KEY_e);
+    last_commit(engine);
+    assert(engine->priv->word_buffer == "ሀ");
+    std::cout << "  PASS: word_buffer accumulates 'ሀ'\n";
+
+    feed_key(ibus_engine, IBUS_KEY_h);
+    feed_key(ibus_engine, IBUS_KEY_o);
+    last_commit(engine);
+    assert(engine->priv->word_buffer == "ሀሆ");
+    std::cout << "  PASS: word_buffer accumulates to 'ሀሆ'\n";
+
+    // Test 16: word_buffer clears at word boundary, last_word saved
+    feed_key(ibus_engine, IBUS_KEY_space);
+    last_commit(engine);
+    assert(engine->priv->word_buffer.empty());
+    assert(engine->priv->last_word == "ሀሆ");
+    std::cout << "  PASS: space clears word_buffer, last_word = 'ሀሆ'\n";
+
+    // Test 17: last_word and word_buffer cleared on reset
+    feed_key(ibus_engine, IBUS_KEY_h);
+    feed_key(ibus_engine, IBUS_KEY_e);
+    last_commit(engine);
+    assert(!engine->priv->word_buffer.empty());
+    feed_key(ibus_engine, IBUS_KEY_space);
+    last_commit(engine);
+    assert(!engine->priv->last_word.empty());
+
+    IBUS_ENGINE_GET_CLASS(engine)->reset(IBUS_ENGINE(engine));
+    assert(engine->priv->word_buffer.empty());
+    assert(engine->priv->last_word.empty());
+    std::cout << "  PASS: reset clears word_buffer and last_word\n";
+
+    // Test 18: word_buffer cleared but last_word empty after reset,
+    // then space doesn't set last_word (empty word_buffer before space)
+    feed_key(ibus_engine, IBUS_KEY_space);
+    last_commit(engine);
+    assert(engine->priv->word_buffer.empty());
+    assert(engine->priv->last_word.empty());
+    std::cout << "  PASS: space with empty word_buffer sets last_word to empty\n";
+
     g_object_unref(engine);
     std::cout << "\nAll IBus engine tests passed.\n";
     return 0;

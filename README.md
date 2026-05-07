@@ -19,21 +19,27 @@ ethiopic-keyboard/
 │   ├── include/ethio/
 │   │   ├── engine.h                   # Input engine (trie descent, preedit/commit)
 │   │   ├── mapping.h                  # Trie, MappingFile, JSON loader
-│   │   └── json.hpp                   # Bundled nlohmann/json single-header
+│   │   ├── wordlist.h                 # Word list with prefix/tag suggestions
+│   │   ├── logger.h                   # Debug logging
+│   │   └── json.hpp                   # Streaming JSON parser
 │   └── src/
 │       ├── engine.cpp                 # Core filter/descend/flush/reset logic
-│       └── mapping.cpp                # Trie insertion + JSON parsing
+│       ├── mapping.cpp                # Trie insertion + JSON parsing
+│       ├── wordlist.cpp               # Word list loading + binary-search suggest
+│       └── logger.cpp                 # Debug logging
 ├── ibus-ethiopic/                     # IBus engine wrapper
 │   ├── src/
 │   │   ├── main.cpp                   # D-Bus entry point, factory registration
 │   │   ├── engine.h                   # GObject IBusEthiopicEngine class
 │   │   └── engine.cpp                 # Key events, preedit/commit, focus/reset
 │   └── data/
-│       └── ethiopic.xml.in             # IBus component template
+│       └── ethiopic.xml               # IBus component registration
 ├── data/amharic/                      # Amharic SERA mapping files + generation scripts
-├── tests/                             # Catch2-style standalone tests
+├── tests/                             # Standalone test programs
 │   ├── test_mapping.cpp               # Trie construction + JSON loading
 │   ├── test_engine.cpp                # Core engine: key→Ethiopic sequences
+│   ├── test_features.cpp              # Feature-level behavior + edge cases
+│   ├── test_wordlist.cpp              # Word list loading + suggestions
 │   └── test_ibus_engine.cpp           # IBus integration (key events, preedit, commit)
 └── build*/                            # Build directories (gitignored)
 ```
@@ -44,28 +50,19 @@ ethiopic-keyboard/
 - **C++17** compiler (tested with GCC 13+ and Clang 18+)
 - **IBus** 1.5+ (`ibus-1.0` pkg-config package)
 - **GLib** 2.0 (`glib-2.0`, `gio-2.0` pkg-config packages)
-- **nlohmann/json** (bundled as `libethio/include/ethio/json.hpp`)
 
 ## Build & Install
 
 ```bash
-# Configure (debug build)
-cmake -B build  -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+# Configure
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
 
 # Build
 cmake --build build
 
-# Run core tests
-cd build && ctest --output-on-failure && cd ..
-
 # Install (requires root for /usr prefix)
 sudo cmake --install build
 ```
-
-The install step places:
-- `/usr/libexec/ibus-engine-ethiopic` — the engine executable
-- `/usr/share/ibus/component/ethiopic.xml` — IBus component registration
-- `/usr/share/ibus-ethiopic/amharic/*.json` — SERA mapping data
 
 ### Custom prefix
 
@@ -75,7 +72,23 @@ cmake --build build
 sudo cmake --install build
 ```
 
-Component XML files must be in the IBus component directory (`/usr/share/ibus/component/` or the equivalent under your prefix). IBus scans this directory to discover engines.
+The install step places:
+- `${LIBEXECDIR}/ibus-engine-ethiopic` — the engine executable (e.g. `/usr/libexec/ibus-engine-ethiopic`)
+- `${DATADIR}/ibus/component/ethiopic.xml` — IBus component registration
+- `${DATADIR}/ibus-ethiopic/` — mapping data (`*.json`), engine defaults
+
+### Running tests
+
+Tests are configured and built separately from the main project:
+
+```bash
+# Configure and build tests
+cmake -B tests/build -S tests
+cmake --build tests/build
+
+# Run all tests
+cd tests/build && ctest --output-on-failure && cd ../..
+```
 
 ## Running
 
@@ -266,10 +279,37 @@ The trie engine handles several cases automatically:
 
 ### Planned
 
+- Word prediction and suggestions (static + dynamic word pools) — **in progress**
 - Typewriter layout (vowel-number suffixes: `h1`=ሀ, `h2`=ሁ, ...)
 - Tigrinya, Guragigna, and other Ethiopic-script languages
 - Windows TSF wrapper
 - Mobile (Android/iOS) wrappers
+
+## Word Suggestions
+
+The engine supports word completion based on two word pools:
+
+### Static Word Pool
+A curated JSON dictionary of common words, place names, people, and organizations (`data/amharic/wordlist.json`). Organized into categories:
+
+| Tag | Category |
+|-----|----------|
+| `common` | Frequently used words |
+| `places` | Cities, towns, regions |
+| `people` | Famous musicians, authors, public figures |
+| `organizations` | Institutions, companies, NGOs |
+
+The word list is loaded once at engine init. Prefix-based suggestions use binary search over a sorted, deduplicated merged list.
+
+### Auto-Suggest Behavior
+- After typing **2 or more** Ethiopic characters of a word, suggestions appear automatically
+- **Tab** cycles through suggestions and accepts the selected completion
+
+### Tag-Based Trigger
+Typing a specific tag prefix (e.g. `#places`) narrows suggestions to that category. Prefix filtering within a tag works the same as global suggest.
+
+### Dynamic Word Pool (Planned)
+Words harvested from the current document's surrounding text, providing context-aware completions.
 
 ## License
 

@@ -247,6 +247,30 @@ src/mapping.cpp.s:
 	cd /home/moab/sources/ethiopic-keyboard/build-ibus && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/mapping.cpp.s
 .PHONY : src/mapping.cpp.s
 
+src/wordlist.o: src/wordlist.cpp.o
+.PHONY : src/wordlist.o
+
+# target to build an object file
+src/wordlist.cpp.o:
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/wordlist.cpp.o
+.PHONY : src/wordlist.cpp.o
+
+src/wordlist.i: src/wordlist.cpp.i
+.PHONY : src/wordlist.i
+
+# target to preprocess a source file
+src/wordlist.cpp.i:
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/wordlist.cpp.i
+.PHONY : src/wordlist.cpp.i
+
+src/wordlist.s: src/wordlist.cpp.s
+.PHONY : src/wordlist.s
+
+# target to generate assembly for a file
+src/wordlist.cpp.s:
+	cd /home/moab/sources/ethiopic-keyboard/build-ibus && $(MAKE) $(MAKESILENT) -f libethio/CMakeFiles/ethio.dir/build.make libethio/CMakeFiles/ethio.dir/src/wordlist.cpp.s
+.PHONY : src/wordlist.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -269,6 +293,9 @@ help:
 	@echo "... src/mapping.o"
 	@echo "... src/mapping.i"
 	@echo "... src/mapping.s"
+	@echo "... src/wordlist.o"
+	@echo "... src/wordlist.i"
+	@echo "... src/wordlist.s"
 .PHONY : help
 
 
