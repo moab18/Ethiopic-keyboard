@@ -128,7 +128,7 @@ static gboolean deferred_preedit_hide_cb(gpointer user_data)
 {
     IBusEthiopicEngine *self = static_cast<IBusEthiopicEngine *>(user_data);
     IBusText *empty = ibus_text_new_from_static_string("");
-    ibus_engine_update_preedit_text(IBUS_ENGINE(self), empty, 0, FALSE);
+    ibus_engine_update_preedit_text_with_mode(IBUS_ENGINE(self), empty, 0, FALSE, IBUS_ENGINE_PREEDIT_CLEAR);
     g_object_unref(self);
     return G_SOURCE_REMOVE;
 }
@@ -145,7 +145,35 @@ static bool is_word_boundary(const std::string &s)
            s == "፡" || s == "።" || s == "፣" || s == "፤" || s == "፥" || s == "፦";
 }
 
+static void track_word(IBusEthiopicEngine *self, const std::string &text)
+{
+    self->priv->last_commit = text;
+
+    if (is_word_boundary(text)) {
+        ethio::logger.debug("track_word: boundary text='%s' word_buffer='%s' -> last_word='%s'",
+                text.c_str(),
+                self->priv->word_buffer.c_str(),
+                self->priv->word_buffer.c_str());
+        self->priv->last_word = self->priv->word_buffer;
+        self->priv->word_buffer.clear();
+    } else if (!text.empty() && text.back() == ' ') {
+        std::string word = text.substr(0, text.size() - 1);
+        ethio::logger.debug("track_word: space-suffix text='%s' word='%s' word_buffer='%s'",
+                text.c_str(), word.c_str(), self->priv->word_buffer.c_str());
+        if (!word.empty()) {
+            self->priv->word_buffer += word;
+        }
+        self->priv->last_word = self->priv->word_buffer;
+        self->priv->word_buffer.clear();
+    } else {
+        ethio::logger.debug("track_word: append text='%s' word_buffer=+'%s'",
+                text.c_str(), text.c_str());
+        self->priv->word_buffer += text;
+    }
+}
+
 static void commit(IBusEthiopicEngine *self);
+static void preedit_update(IBusEthiopicEngine *self);
 
 static void hide_lookup(IBusEthiopicEngine *self)
 {
@@ -159,24 +187,37 @@ static void hide_lookup(IBusEthiopicEngine *self)
 
 static void show_suggestions(IBusEthiopicEngine *self)
 {
+    ethio::logger.debug("show_suggestions: word_buffer='%s' last_word='%s'",
+            self->priv->word_buffer.c_str(),
+            self->priv->last_word.c_str());
+
     std::vector<std::string> results;
 
     if (!self->priv->word_buffer.empty()) {
         results = self->priv->wordlist.suggest(self->priv->word_buffer, 8);
+        ethio::logger.debug("show_suggestions: prefix suggest -> %zu results",
+                results.size());
     } else if (!self->priv->last_word.empty()) {
         results = self->priv->wordlist.suggest_next(self->priv->last_word, 8);
+        ethio::logger.debug("show_suggestions: bigram suggest_next('%s') -> %zu results",
+                self->priv->last_word.c_str(), results.size());
     }
 
     if (results.empty()) {
-        results = self->priv->wordlist.top_words(8);
+        ethio::logger.debug("show_suggestions: no results, returning");
+        return;
     }
-
-    if (results.empty()) return;
 
     hide_lookup(self);
 
     self->priv->lookup_table = ibus_lookup_table_new(8, 0, TRUE, TRUE);
     g_object_ref_sink(self->priv->lookup_table);
+
+    for (int i = 0; i < 8; i++) {
+        char buf[2] = {static_cast<char>('1' + i), '\0'};
+        IBusText *label = ibus_text_new_from_string(buf);
+        ibus_lookup_table_set_label(self->priv->lookup_table, i, label);
+    }
 
     for (const auto &w : results) {
         IBusText *t = ibus_text_new_from_string(w.c_str());
@@ -197,19 +238,26 @@ static void accept_candidate(IBusEthiopicEngine *self)
 
     if (candidate) {
         std::string full(candidate->text);
-        if (full.size() > self->priv->word_buffer.size() &&
-            full.compare(0, self->priv->word_buffer.size(),
-                         self->priv->word_buffer) == 0) {
-            std::string suffix = full.substr(self->priv->word_buffer.size());
-            suffix += " ";
+        std::string prefix = self->priv->prefix_before_commit;
+        self->priv->prefix_before_commit.clear();
+        if (!prefix.empty() &&
+            full.size() >= prefix.size() &&
+            full.compare(0, prefix.size(), prefix) == 0) {
+            std::string suffix = full.substr(prefix.size());
             self->priv->core.append_produced(suffix);
-            commit(self);
-            self->priv->last_preedit.clear();
-            defer_preedit_hide(self);
+        } else {
+            self->priv->core.append_produced(full);
         }
+        self->priv->core.append_produced(" ");
+        commit(self);
+        self->priv->last_preedit.clear();
+        preedit_update(self);
     }
 
     hide_lookup(self);
+    if (self->priv->word_buffer.empty() && !self->priv->last_word.empty()) {
+        show_suggestions(self);
+    }
 }
 
 static void commit(IBusEthiopicEngine *self)
@@ -219,18 +267,21 @@ static void commit(IBusEthiopicEngine *self)
 
     ethio::logger.debug("commit: committing text='%s'", text.c_str());
 
-    self->priv->last_commit = text;
+    track_word(self, text);
 
-    if (is_word_boundary(text)) {
-        self->priv->last_word = self->priv->word_buffer;
-        self->priv->word_buffer.clear();
-    } else {
-        self->priv->word_buffer += text;
+    if (self->priv->test_mode) {
+        self->priv->test_committed += text;
+        return;
     }
 
-    if (!has_connection(self)) return;
+    if (!has_connection(self)) {
+        ethio::logger.warning("commit: no D-Bus connection, dropping text='%s'",
+                text.c_str());
+        return;
+    }
 
-    IBusText *ibus_text = ibus_text_new_from_static_string(text.c_str());
+    ethio::logger.debug("commit: sending via D-Bus text='%s'", text.c_str());
+    IBusText *ibus_text = ibus_text_new_from_string(text.c_str());
     ibus_engine_commit_text(IBUS_ENGINE(self), ibus_text);
 }
 
@@ -244,13 +295,17 @@ static void preedit_update(IBusEthiopicEngine *self)
 
     self->priv->last_preedit = std::string(composing);
 
+    if (self->priv->test_mode) {
+        self->priv->test_preedit = std::string(composing);
+        self->priv->test_preedit_visible = !composing.empty();
+        return;
+    }
+
     if (!has_connection(self)) return;
 
     if (composing.empty()) {
-        if (has_connection(self)) {
-            IBusText *empty_text = ibus_text_new_from_static_string("");
-            ibus_engine_update_preedit_text(IBUS_ENGINE(self), empty_text, 0, FALSE);
-        }
+        IBusText *empty_text = ibus_text_new_from_static_string("");
+        ibus_engine_update_preedit_text_with_mode(IBUS_ENGINE(self), empty_text, 0, FALSE, IBUS_ENGINE_PREEDIT_COMMIT);
         return;
     }
 
@@ -264,9 +319,9 @@ static void preedit_update(IBusEthiopicEngine *self)
     ibus_attr_list_append(text->attrs,
         ibus_attr_underline_new(IBUS_ATTR_UNDERLINE_SINGLE, 0,
                                 static_cast<guint>(composing.size())));
-    ibus_engine_update_preedit_text(IBUS_ENGINE(self), text,
+    ibus_engine_update_preedit_text_with_mode(IBUS_ENGINE(self), text,
                                     static_cast<guint>(cursor_byte),
-                                    TRUE);
+                                    TRUE, IBUS_ENGINE_PREEDIT_COMMIT);
 }
 
 static gboolean
@@ -294,6 +349,7 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
             return TRUE;
         }
         if (keyval == IBUS_KEY_space) {
+            ethio::logger.debug("process_key_event -> IBUS_CONTROL_MASK -> IBUS_KEY_space is pressed");
             self->priv->core.finish_composition();
             commit(self);
             preedit_update(self);
@@ -305,42 +361,86 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
 
     if (self->priv->core.passthrough()) return FALSE;
 
-    if (self->priv->lookup_table &&
-        (keyval == IBUS_KEY_Tab || keyval == IBUS_ISO_Left_Tab)) {
-        if (keyval == IBUS_ISO_Left_Tab) {
-            guint pos = ibus_lookup_table_get_cursor_pos(
-                    self->priv->lookup_table);
-            if (pos == 0) {
+    if (self->priv->lookup_table) {
+             ethio::logger.debug("process_key_event: priv->lookup_table");
+        if (keyval == IBUS_KEY_Tab || keyval == IBUS_ISO_Left_Tab) {
+            if (keyval == IBUS_ISO_Left_Tab) {
+                guint pos = ibus_lookup_table_get_cursor_pos(
+                        self->priv->lookup_table);
+                if (pos == 0) {
+                    guint n = ibus_lookup_table_get_number_of_candidates(
+                            self->priv->lookup_table);
+                    ibus_lookup_table_set_cursor_pos(
+                            self->priv->lookup_table, n - 1);
+                } else {
+                    ibus_lookup_table_cursor_up(self->priv->lookup_table);
+                }
+            } else {
                 guint n = ibus_lookup_table_get_number_of_candidates(
                         self->priv->lookup_table);
-                ibus_lookup_table_set_cursor_pos(self->priv->lookup_table, n - 1);
-            } else {
-                ibus_lookup_table_cursor_up(self->priv->lookup_table);
+                guint pos = ibus_lookup_table_get_cursor_pos(
+                        self->priv->lookup_table);
+                if (pos + 1 >= n) {
+                    accept_candidate(self);
+                    return TRUE;
+                }
+                ibus_lookup_table_cursor_down(self->priv->lookup_table);
             }
-        } else {
-            guint n = ibus_lookup_table_get_number_of_candidates(
-                    self->priv->lookup_table);
-            guint pos = ibus_lookup_table_get_cursor_pos(
-                    self->priv->lookup_table);
-            if (pos + 1 >= n) {
-                accept_candidate(self);
-                return TRUE;
-            }
-            ibus_lookup_table_cursor_down(self->priv->lookup_table);
+            ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+                    self->priv->lookup_table, TRUE);
+            return TRUE;
         }
-        ibus_engine_update_lookup_table(IBUS_ENGINE(self),
-                self->priv->lookup_table, TRUE);
-        return TRUE;
-    }
 
-    if (self->priv->lookup_table) {
-        if (keyval == IBUS_KEY_Return || keyval == IBUS_KEY_KP_Enter ||
-            keyval == IBUS_KEY_space) {
-            self->priv->core.finish_composition();
-            commit(self);
+        if (keyval == IBUS_KEY_Down || keyval == IBUS_KEY_KP_Down) {
+            ibus_lookup_table_cursor_down(self->priv->lookup_table);
+            ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+                    self->priv->lookup_table, TRUE);
+            return TRUE;
+        }
+        if (keyval == IBUS_KEY_Up || keyval == IBUS_KEY_KP_Up) {
+            ibus_lookup_table_cursor_up(self->priv->lookup_table);
+            ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+                    self->priv->lookup_table, TRUE);
+            return TRUE;
+        }
+
+        if (keyval == IBUS_KEY_Page_Up || keyval == IBUS_KEY_KP_Page_Up) {
+            ibus_lookup_table_page_up(self->priv->lookup_table);
+            ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+                    self->priv->lookup_table, TRUE);
+            return TRUE;
+        }
+        if (keyval == IBUS_KEY_Page_Down || keyval == IBUS_KEY_KP_Page_Down) {
+            ibus_lookup_table_page_down(self->priv->lookup_table);
+            ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+                    self->priv->lookup_table, TRUE);
+            return TRUE;
+        }
+
+        if ((keyval >= IBUS_KEY_1 && keyval <= IBUS_KEY_8) ||
+            (keyval >= IBUS_KEY_KP_1 && keyval <= IBUS_KEY_KP_8)) {
+            int idx = (keyval >= IBUS_KEY_KP_1)
+                ? static_cast<int>(keyval - IBUS_KEY_KP_1)
+                : static_cast<int>(keyval - IBUS_KEY_1);
+            ibus_lookup_table_set_cursor_pos(
+                    self->priv->lookup_table, idx);
+    self->priv->prefix_before_commit = self->priv->word_buffer;
+    self->priv->core.reset();
+    accept_candidate(self);
+            return TRUE;
+        }
+
+        if (keyval == IBUS_KEY_Return || keyval == IBUS_KEY_KP_Enter) {
+            self->priv->prefix_before_commit = self->priv->word_buffer;
+            self->priv->core.reset();
             accept_candidate(self);
             return TRUE;
         }
+
+        if (keyval == IBUS_KEY_space) {
+            hide_lookup(self);
+        }
+
         hide_lookup(self);
     }
 
@@ -420,26 +520,32 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
             std::string(self->priv->core.composing()).c_str(),
             std::string(self->priv->core.produced_text()).c_str());
 
+    commit(self);
+
     if (!handled) {
         ethio::logger.debug("process_key_event: unmapped key='%s', "
-                "appending to produced", key.c_str());
+                "appending to produced (produced_ has %zu bytes)",
+                key.c_str(),
+                self->priv->core.produced_text().size());
         self->priv->core.append_produced(key);
+        commit(self);
         handled = true;
     }
 
-    commit(self);
 
-    if (self->priv->word_buffer.empty() && !self->priv->last_word.empty()) {
+    if (!self->priv->word_buffer.empty()) {
+        show_suggestions(self);
+    } else if (!self->priv->last_word.empty()) {
         show_suggestions(self);
     }
 
     if (self->priv->core.composing().empty()) {
         self->priv->last_preedit.clear();
-        defer_preedit_hide(self);
+        preedit_update(self);
     } else {
         preedit_update(self);
     }
-
+ ethio::logger.debug("process_key_event: end.");
     return handled ? TRUE : FALSE;
 }
 
@@ -458,13 +564,17 @@ ibus_ethiopic_engine_focus_out(IBusEngine *engine)
 {
     ethio::logger.debug("focus_out: called");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    self->priv->core.finish_composition();
+    std::string text = self->priv->core.flush();
+    if (!text.empty()) {
+        track_word(self, text);
+    }
     hide_lookup(self);
     self->priv->word_buffer.clear();
     self->priv->last_word.clear();
     if (self->priv->core.passthrough()) {
         self->priv->core.toggle_passthrough();
     }
-    self->priv->core.reset();
     preedit_update(self);
 }
 
@@ -473,11 +583,69 @@ ibus_ethiopic_engine_reset(IBusEngine *engine)
 {
     ethio::logger.debug("reset: called");
     auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    self->priv->core.finish_composition();
+    std::string text = self->priv->core.flush();
+    if (!text.empty()) {
+        track_word(self, text);
+    }
     hide_lookup(self);
     self->priv->word_buffer.clear();
     self->priv->last_word.clear();
-    self->priv->core.reset();
     preedit_update(self);
+}
+
+static void
+ibus_ethiopic_engine_page_up(IBusEngine *engine)
+{
+    auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    if (!self->priv->lookup_table) return;
+    ibus_lookup_table_page_up(self->priv->lookup_table);
+    ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+            self->priv->lookup_table, TRUE);
+}
+
+static void
+ibus_ethiopic_engine_page_down(IBusEngine *engine)
+{
+    auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    if (!self->priv->lookup_table) return;
+    ibus_lookup_table_page_down(self->priv->lookup_table);
+    ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+            self->priv->lookup_table, TRUE);
+}
+
+static void
+ibus_ethiopic_engine_cursor_up(IBusEngine *engine)
+{
+    auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    if (!self->priv->lookup_table) return;
+    ibus_lookup_table_cursor_up(self->priv->lookup_table);
+    ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+            self->priv->lookup_table, TRUE);
+}
+
+static void
+ibus_ethiopic_engine_cursor_down(IBusEngine *engine)
+{
+    auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    if (!self->priv->lookup_table) return;
+    ibus_lookup_table_cursor_down(self->priv->lookup_table);
+    ibus_engine_update_lookup_table(IBUS_ENGINE(self),
+            self->priv->lookup_table, TRUE);
+}
+
+static void
+ibus_ethiopic_engine_candidate_clicked(IBusEngine *engine,
+                                       guint index,
+                                       guint button,
+                                       guint state)
+{
+    auto *self = IBUS_ETHIOPIC_ENGINE(engine);
+    if (!self->priv->lookup_table) return;
+    ibus_lookup_table_set_cursor_pos(self->priv->lookup_table, index);
+            self->priv->prefix_before_commit = self->priv->word_buffer;
+            self->priv->core.reset();
+            accept_candidate(self);
 }
 
 static void
@@ -523,4 +691,9 @@ ibus_ethiopic_engine_class_init(IBusEthiopicEngineClass *klass)
     engine_class->set_content_type = ibus_ethiopic_engine_set_content_type;
     engine_class->focus_out = ibus_ethiopic_engine_focus_out;
     engine_class->reset = ibus_ethiopic_engine_reset;
+    engine_class->page_up = ibus_ethiopic_engine_page_up;
+    engine_class->page_down = ibus_ethiopic_engine_page_down;
+    engine_class->cursor_up = ibus_ethiopic_engine_cursor_up;
+    engine_class->cursor_down = ibus_ethiopic_engine_cursor_down;
+    engine_class->candidate_clicked = ibus_ethiopic_engine_candidate_clicked;
 }

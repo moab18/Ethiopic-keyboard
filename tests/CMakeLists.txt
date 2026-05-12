@@ -49,7 +49,7 @@ target_link_libraries(test_ibus_engine PRIVATE
 target_compile_definitions(test_ibus_engine PRIVATE
     DATA_DIR="${CMAKE_SOURCE_DIR}/../data"
     MAPPING_DIR="${CMAKE_SOURCE_DIR}/../data"
-    IBUS_ENGINE_NAME="xkb:et:amharic"
+    IBUS_ENGINE_NAME="ethio:am"
     IBUS_COMPONENT_NAME="org.freedesktop.IBus.Ethiopic"
 )
 target_compile_options(test_ibus_engine PRIVATE

@@ -56,7 +56,6 @@ public:
     void reset();
 
     void finish_composition();
-
     std::string_view produced_text() const { return produced_; }
 
     void append_produced(std::string_view s) { produced_.append(s); }

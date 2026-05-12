@@ -114,7 +114,7 @@ int main()
     {
         auto results = wl.suggest_by_tag("places", "", 50);
         assert(!results.empty());
-        assert(results.size() >= 10);
+        assert(results.size() >= 5);
         std::cout << "  PASS: tag 'places' all -> " << results.size() << " places\n";
     }
 

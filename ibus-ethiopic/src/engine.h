@@ -12,7 +12,7 @@
 #define IBUS_IS_ETHIOPIC_ENGINE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), IBUS_TYPE_ETHIOPIC_ENGINE))
 
 GType ibus_ethiopic_engine_get_type(void);
-
+//https://www.manpagez.com/html/gobject/gobject-2.44.1/gobject-Type-Information.php
 struct IBusEthiopicEnginePrivate {
     ethio::Engine core;
     ethio::WordList wordlist;
@@ -21,6 +21,11 @@ struct IBusEthiopicEnginePrivate {
     IBusLookupTable *lookup_table = nullptr;
     std::string word_buffer;
     std::string last_word;
+    bool test_mode = false;
+    std::string test_committed;
+    std::string test_preedit;
+    bool test_preedit_visible = false;
+    std::string prefix_before_commit;
 };
 
 typedef struct _IBusEthiopicEngine {
