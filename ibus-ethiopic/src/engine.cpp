@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #include "engine.h"
 
 #include <ibus.h>
@@ -124,31 +127,16 @@ static bool has_connection(IBusEthiopicEngine *self)
     return ibus_service_get_connection(IBUS_SERVICE(self)) != nullptr;
 }
 
-static gboolean deferred_preedit_hide_cb(gpointer user_data)
-{
-    IBusEthiopicEngine *self = static_cast<IBusEthiopicEngine *>(user_data);
-    IBusText *empty = ibus_text_new_from_static_string("");
-    ibus_engine_update_preedit_text_with_mode(IBUS_ENGINE(self), empty, 0, FALSE, IBUS_ENGINE_PREEDIT_CLEAR);
-    g_object_unref(self);
-    return G_SOURCE_REMOVE;
-}
-
-static void defer_preedit_hide(IBusEthiopicEngine *self)
-{
-    if (!has_connection(self)) return;
-    g_idle_add(deferred_preedit_hide_cb, g_object_ref(self));
-}
-
 static bool is_word_boundary(const std::string &s)
 {
     return s == " " || s == "\n" ||
            s == "፡" || s == "።" || s == "፣" || s == "፤" || s == "፥" || s == "፦";
 }
 
+// Handles word boundary detection. When filter merges pending text with a
+// trailing space (e.g. "ማ " as one string), the space suffix triggers the boundary.
 static void track_word(IBusEthiopicEngine *self, const std::string &text)
 {
-    self->priv->last_commit = text;
-
     if (is_word_boundary(text)) {
         ethio::logger.debug("track_word: boundary text='%s' word_buffer='%s' -> last_word='%s'",
                 text.c_str(),
@@ -228,6 +216,8 @@ static void show_suggestions(IBusEthiopicEngine *self)
             self->priv->lookup_table, TRUE);
 }
 
+// Commits the selected candidate. Uses prefix_before_commit (snapshot taken
+// before discarding pending preedit) to compute the suffix to append.
 static void accept_candidate(IBusEthiopicEngine *self)
 {
     if (!self->priv->lookup_table) return;
@@ -250,7 +240,6 @@ static void accept_candidate(IBusEthiopicEngine *self)
         }
         self->priv->core.append_produced(" ");
         commit(self);
-        self->priv->last_preedit.clear();
         preedit_update(self);
     }
 
@@ -293,8 +282,6 @@ static void preedit_update(IBusEthiopicEngine *self)
             composing.data(), composing.size(),
             composing.empty() ? " -> hiding" : "");
 
-    self->priv->last_preedit = std::string(composing);
-
     if (self->priv->test_mode) {
         self->priv->test_preedit = std::string(composing);
         self->priv->test_preedit_visible = !composing.empty();
@@ -317,7 +304,7 @@ static void preedit_update(IBusEthiopicEngine *self)
     IBusText *text = ibus_text_new_from_static_string(composing.data());
     text->attrs = ibus_attr_list_new();
     ibus_attr_list_append(text->attrs,
-        ibus_attr_underline_new(IBUS_ATTR_UNDERLINE_SINGLE, 0,
+        ibus_attr_hint_new(IBUS_ATTR_PREEDIT_WHOLE, 0,
                                 static_cast<guint>(composing.size())));
     ibus_engine_update_preedit_text_with_mode(IBUS_ENGINE(self), text,
                                     static_cast<guint>(cursor_byte),
@@ -539,13 +526,8 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
         show_suggestions(self);
     }
 
-    if (self->priv->core.composing().empty()) {
-        self->priv->last_preedit.clear();
-        preedit_update(self);
-    } else {
-        preedit_update(self);
-    }
- ethio::logger.debug("process_key_event: end.");
+    preedit_update(self);
+    ethio::logger.debug("process_key_event: end.");
     return handled ? TRUE : FALSE;
 }
 

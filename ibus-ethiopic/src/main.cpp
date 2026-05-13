@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #include <ibus.h>
 
 #include <cstdio>
@@ -129,8 +132,19 @@ int main(int argc, char **argv)
             break;
         }
     }
-
-    ethio::logger.enable("/tmp/ethio-" + std::string(g_get_user_name()) + ".log");
+    bool log = false;
+    for (int i = 1; i < argc; i++) {
+        if (std::strcmp(argv[i], "--log") == 0) {
+            log = true;
+            break;
+        }
+    }
+    if (log){
+       ethio::logger.enable("/tmp/ethio-" + std::string(g_get_user_name()) + ".log");     
+    }
+    else{
+        ethio::logger.disable();
+    }
     ethio::logger.info("ibus engine starting (pid=%d, ibus=%d)",
                        getpid(), exec_by_ibus);
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #include "ethio/engine.h"
 #include "ethio/logger.h"
 
@@ -102,6 +105,10 @@ bool Engine::filter(std::string_view key)
         return descend(key, it->second.get());
     }
 
+// Key not found under current branch node: flush any pending text to produced,
+// reset to trie root, then retry the key from root. This handles sequences
+// where a vowel doesn't match a consonant (e.g. "la" branch fails on "m",
+// which flushes "ላ" and retries "m" from root to start a new syllable).
     logger.debug("ethio::Engine::filter: key='%s' NOT found, "
             "flushing pending='%s' and retrying from root",
             key_str.c_str(), pending_text_.c_str());
@@ -158,6 +165,8 @@ bool Engine::descend(std::string_view key, const TrieNode *node)
                 has_children ? "yes" : "no");
     }
 
+// If the trie node is a leaf (no children), auto-commit pending text to
+// produced_ and reset. Branch nodes leave text pending for more keystrokes.
     if (!has_children) {
         if (!pending_text_.empty()) {
             produced_ += pending_text_;

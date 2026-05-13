@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #include "engine.h"
 
 #include <cassert>
@@ -12,13 +15,6 @@ static void feed_key(IBusEngine *engine, guint keyval)
 }
 
 static std::string drain_commit(IBusEthiopicEngine *e)
-{
-    std::string s;
-    s.swap(e->priv->test_committed);
-    return s;
-}
-
-static std::string drain_commit_all(IBusEthiopicEngine *e)
 {
     std::string s;
     s.swap(e->priv->test_committed);
@@ -268,18 +264,18 @@ int main()
     IBUS_ENGINE_GET_CLASS(engine)->reset(IBUS_ENGINE(engine));
 
     feed_key(ibus_engine, IBUS_KEY_a);
-    assert(engine->priv->last_preedit == "አ");
+    assert(engine->priv->test_preedit == "አ");
     std::cout << "  PASS: 'a' -> preedit 'አ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_t);
-    assert(engine->priv->last_preedit == "ት");
+    assert(engine->priv->test_preedit == "ት");
     std::string c1 = drain_commit(engine);
     assert(c1 == "አ");
     assert(engine->priv->word_buffer == "አ");
     std::cout << "  PASS: 'at' -> commit 'አ', preedit 'ት', word_buffer='አ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_o);
-    assert(engine->priv->last_preedit.empty());
+    assert(engine->priv->test_preedit.empty());
     std::string c2 = drain_commit(engine);
     assert(c2 == "ቶ");
     assert(engine->priv->word_buffer == "አቶ");
@@ -292,28 +288,28 @@ int main()
     std::cout << "  PASS: space after 'ato' -> boundary, last_word='አቶ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_l);
-    assert(engine->priv->last_preedit == "ል");
+    assert(engine->priv->test_preedit == "ል");
     std::cout << "  PASS: 'l' -> preedit 'ል'\n";
 
     feed_key(ibus_engine, IBUS_KEY_e);
-    assert(engine->priv->last_preedit.empty());
+    assert(engine->priv->test_preedit.empty());
     std::string c3 = drain_commit(engine);
     assert(c3 == "ለ");
     assert(engine->priv->word_buffer == "ለ");
     std::cout << "  PASS: 'le' -> commit 'ለ', word_buffer='ለ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_m);
-    assert(engine->priv->last_preedit == "ም");
+    assert(engine->priv->test_preedit == "ም");
     assert(engine->priv->word_buffer == "ለ");
     std::cout << "  PASS: 'm' -> preedit 'ም', word_buffer still 'ለ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_a);
-    assert(engine->priv->last_preedit == "ማ");
+    assert(engine->priv->test_preedit == "ማ");
     assert(engine->priv->word_buffer == "ለ");
     std::cout << "  PASS: 'ma' -> preedit 'ማ', word_buffer still 'ለ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_space);
-    assert(engine->priv->last_preedit.empty());
+    assert(engine->priv->test_preedit.empty());
     assert(engine->priv->word_buffer.empty());
     assert(engine->priv->last_word == "ለማ");
     std::string c4 = drain_commit(engine);
@@ -328,7 +324,7 @@ int main()
     feed_key(ibus_engine, IBUS_KEY_o);
     drain_commit(engine);
     assert(engine->priv->word_buffer == "አቶ");
-    assert(engine->priv->last_preedit.empty());
+    assert(engine->priv->test_preedit.empty());
     std::cout << "  PASS: 'ato' -> word_buffer='አቶ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_space);
@@ -357,25 +353,25 @@ int main()
     feed_key(ibus_engine, IBUS_KEY_s);
     feed_key(ibus_engine, IBUS_KEY_e);
     assert(engine->priv->word_buffer == "ሰ");
-    assert(engine->priv->last_preedit.empty());
+    assert(engine->priv->test_preedit.empty());
     std::cout << "  PASS: 'se' -> commit 'ሰ', word_buffer='ሰ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_l);
-    assert(engine->priv->last_preedit == "ል");
+    assert(engine->priv->test_preedit == "ል");
     std::cout << "  PASS: 'l' -> preedit 'ል'\n";
 
     feed_key(ibus_engine, IBUS_KEY_a);
-    assert(engine->priv->last_preedit == "ላ");
+    assert(engine->priv->test_preedit == "ላ");
     assert(engine->priv->word_buffer == "ሰ");
     std::cout << "  PASS: 'la' -> preedit 'ላ', word_buffer still 'ሰ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_m);
-    assert(engine->priv->last_preedit == "ም");
+    assert(engine->priv->test_preedit == "ም");
     assert(engine->priv->word_buffer == "ሰላ");
     std::cout << "  PASS: 'm' -> flush 'ላ', commit, preedit 'ም', word_buffer='ሰላ'\n";
 
     feed_key(ibus_engine, IBUS_KEY_space);
-    assert(engine->priv->last_preedit.empty());
+    assert(engine->priv->test_preedit.empty());
     assert(engine->priv->word_buffer.empty());
     assert(engine->priv->last_word == "ሰላም");
     std::cout << "  PASS: space after 'selam' -> commit 'ም', boundary, last_word='ሰላም'\n";

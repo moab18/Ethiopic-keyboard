@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #pragma once
 
 #include <ibus.h>
@@ -16,16 +19,14 @@ GType ibus_ethiopic_engine_get_type(void);
 struct IBusEthiopicEnginePrivate {
     ethio::Engine core;
     ethio::WordList wordlist;
-    std::string last_commit;
-    std::string last_preedit;
     IBusLookupTable *lookup_table = nullptr;
-    std::string word_buffer;
-    std::string last_word;
+    std::string word_buffer;          // accumulated committed text since last boundary
+    std::string last_word;            // previous word (for bigram prediction)
     bool test_mode = false;
-    std::string test_committed;
-    std::string test_preedit;
+    std::string test_committed;       // mock: all CommitText calls concatenated
+    std::string test_preedit;         // mock: current preedit text
     bool test_preedit_visible = false;
-    std::string prefix_before_commit;
+    std::string prefix_before_commit; // word_buffer snapshot before candidate selection
 };
 
 typedef struct _IBusEthiopicEngine {

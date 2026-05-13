@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #include "ethio/logger.h"
 
 #include <ctime>
@@ -18,7 +21,7 @@ void Logger::enable(const std::string& filepath)
     if (file_ && owned_) {
         fclose(file_);
     }
-    file_ = fopen(filepath.c_str(), "w");
+    file_ = fopen(filepath.c_str(), "a");
     owned_ = (file_ != nullptr);
     if (file_) {
         setbuf(file_, nullptr);
