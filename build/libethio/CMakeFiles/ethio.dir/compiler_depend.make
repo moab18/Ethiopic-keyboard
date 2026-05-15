@@ -362,6 +362,7 @@ libethio/CMakeFiles/ethio.dir/src/logger.cpp.o: /home/moab/sources/ethiopic-keyb
 
 libethio/CMakeFiles/ethio.dir/src/mapping.cpp.o: /home/moab/sources/ethiopic-keyboard/libethio/src/mapping.cpp \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/json.hpp \
+  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/mapping.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
@@ -519,6 +520,7 @@ libethio/CMakeFiles/ethio.dir/src/mapping.cpp.o: /home/moab/sources/ethiopic-key
   /usr/include/c++/15/cerrno \
   /usr/include/c++/15/clocale \
   /usr/include/c++/15/concepts \
+  /usr/include/c++/15/cstdarg \
   /usr/include/c++/15/cstddef \
   /usr/include/c++/15/cstdio \
   /usr/include/c++/15/cstdlib \
@@ -598,6 +600,7 @@ libethio/CMakeFiles/ethio.dir/src/mapping.cpp.o: /home/moab/sources/ethiopic-key
 
 libethio/CMakeFiles/ethio.dir/src/wordlist.cpp.o: /home/moab/sources/ethiopic-keyboard/libethio/src/wordlist.cpp \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/json.hpp \
+  /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
   /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/wordlist.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
@@ -750,6 +753,7 @@ libethio/CMakeFiles/ethio.dir/src/wordlist.cpp.o: /home/moab/sources/ethiopic-ke
   /usr/include/c++/15/cerrno \
   /usr/include/c++/15/clocale \
   /usr/include/c++/15/concepts \
+  /usr/include/c++/15/cstdarg \
   /usr/include/c++/15/cstddef \
   /usr/include/c++/15/cstdio \
   /usr/include/c++/15/cstdlib \

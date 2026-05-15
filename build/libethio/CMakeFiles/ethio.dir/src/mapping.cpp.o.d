@@ -163,4 +163,6 @@ libethio/CMakeFiles/ethio.dir/src/mapping.cpp.o: \
  /usr/include/c++/15/x86_64-redhat-linux/bits/basic_file.h \
  /usr/include/c++/15/x86_64-redhat-linux/bits/c++io.h \
  /usr/include/c++/15/bits/fstream.tcc \
- /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/json.hpp
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/json.hpp \
+ /home/moab/sources/ethiopic-keyboard/libethio/include/ethio/logger.h \
+ /usr/include/c++/15/cstdarg

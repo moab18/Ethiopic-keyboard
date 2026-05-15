@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
-
+#include "ethio/logger.h"
 namespace ethio {
 
 class Json {
@@ -94,8 +94,11 @@ private:
     void next() { ch_ = is_.get(); }
     void expect(int c)
     {
-        if (ch_ != c)
-            throw std::runtime_error(std::string("Json: expected '") + static_cast<char>(c) + "'");
+        if (ch_ != c) {
+                 throw std::runtime_error(std::string("Json: expected c='")+ static_cast<char>(c) +
+                                            "', but the value : ch_='" + static_cast<char>(ch_) + "'");
+              
+        }
         next();
     }
 
@@ -143,8 +146,13 @@ private:
             j.is_arr_ = true;
             parse_array(j);
         } else {
-            throw std::runtime_error(std::string("Json: unexpected char '") +
-                                     static_cast<char>(ch_) + "'");
+              if (ch_ == ']' || ch_ == '}' || ch_ == ',') { 
+                ethio::logger.warning((std::string("Json: unexpected char '") + static_cast<char>(ch_) + "'").c_str());
+                return; // ignore and move to the next
+              }  
+              else {
+                throw std::runtime_error(std::string("Json: unexpected char '") + static_cast<char>(ch_) + "'");    
+              }
         }
     }
 

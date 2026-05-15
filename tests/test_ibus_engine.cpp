@@ -37,7 +37,7 @@ static bool preedit_visible(IBusEthiopicEngine *e)
 
 int main()
 {
-    ethio::logger.disable();
+    //ethio::logger.disable();
     
     auto *engine = IBUS_ETHIOPIC_ENGINE(
         g_object_new(IBUS_TYPE_ETHIOPIC_ENGINE, "engine-name", IBUS_ENGINE_NAME, nullptr)); 

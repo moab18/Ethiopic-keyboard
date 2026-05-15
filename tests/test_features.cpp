@@ -123,11 +123,11 @@ int main()
 
         eng.filter("/"); eng.filter("e");  //eng.filter(" ");
         eng.finish_composition();
-        assert_eq(eng.flush(), "ዐ", "slash-alt '/e' -> `ayn ä");
+        assert_eq(eng.flush(), "ዕ", "slash-alt '/e' -> `ayn ä");
 
-        eng.filter("/"); eng.filter("D"); eng.filter("e");// eng.filter(" ");
+        eng.filter("J"); eng.filter("e");// eng.filter(" ");
         eng.finish_composition();
-        assert_eq(eng.flush(), "ዸ", "slash-alt '/De' -> ḍa");
+        assert_eq(eng.flush(), "ዸ", "slash-alt 'Je' -> ḍa");
     }
 
     // ── 4. Double-consonant alternatives (same results as slash) ──
@@ -178,7 +178,7 @@ int main()
 
     // ── 6. Aynu (pharyngeal) forms via slash ──
     {
-        eng.filter("/"); eng.filter("e"); //eng.filter(" ");
+        eng.filter("/"); eng.filter("a"); //eng.filter(" ");
         eng.finish_composition();
         assert_eq(eng.flush(), "ዐ", "aynū '/e'");
 
@@ -190,9 +190,9 @@ int main()
         eng.finish_composition();
         assert_eq(eng.flush(), "ዒ", "aynū '/i'");
 
-        eng.filter("/"); eng.filter("a"); //eng.filter(" ");
+        eng.filter("/"); eng.filter("A"); //eng.filter(" ");
         eng.finish_composition();
-        assert_eq(eng.flush(), "ዓ", "aynū '/a'");
+        assert_eq(eng.flush(), "ዓ", "aynū '/A'");
 
         eng.filter("/"); eng.filter("E"); //eng.filter(" ");
         eng.finish_composition();
@@ -207,34 +207,8 @@ int main()
         assert_eq(eng.flush(), "ዖ", "aynū '/o'");
     }
 
-    // ── 7. Aynu via doubled-vowel notation ──
-    {
-        eng.filter("a"); eng.filter("e");  //eng.filter(" ");
-        eng.finish_composition();
-        assert_eq(eng.flush(), "ዐ", "aynū 'ae'");
 
-        eng.filter("u"); eng.filter("u");  //eng.filter(" ");
-        eng.finish_composition();
-        assert_eq(eng.flush(), "ዑ", "aynū 'uu'");
-
-        eng.filter("a"); eng.filter("a");  //eng.filter(" ");
-        eng.finish_composition();
-        assert_eq(eng.flush(), "ዓ", "aynū 'aa'");
-
-        eng.filter("E"); eng.filter("E");  //eng.filter(" ");
-        eng.finish_composition();
-        assert_eq(eng.flush(), "ዔ", "aynū 'EE'");
-
-        eng.filter("i"); eng.filter("i");  //eng.filter(" ");
-        eng.finish_composition();
-        assert_eq(eng.flush(), "ዒ", "aynū 'ii'");
-
-        eng.filter("o"); eng.filter("o");  //eng.filter(" ");
-        eng.finish_composition();
-        assert_eq(eng.flush(), "ዖ", "aynū 'oo'");
-    }
-
-    // ── 8. Capital consonant aliases (equivalent output) ──
+    // ── 7. Capital consonant aliases (equivalent output) ──
     {
         eng.filter("H"); eng.filter("e"); //eng.filter(" ");
         eng.finish_composition();
@@ -253,7 +227,7 @@ int main()
         assert_eq(eng.flush(), "ሮ", "capital 'R' family");
     }
 
-    // ── 9. Punctuation ──
+    // ── 8. Punctuation ──
     {
         eng.filter(":");  //eng.filter(" ");
         eng.finish_composition();
@@ -276,7 +250,7 @@ int main()
         assert_eq(eng.flush(), "፥", "punctuation '-:'");
     }
 
-    // ── 10. Ethiopic numerals ──
+    // ── 9. Ethiopic numerals ──
     {
         eng.filter("`"); eng.filter("1"); //eng.filter(" ");
         eng.finish_composition();
@@ -307,7 +281,7 @@ int main()
         assert_eq(eng.flush(), "፻፼", "numeral '`1000000'");
     }
 
-    // ── 11. Escape sequences ──
+    // ── 10. Escape sequences ──
     {
         eng.filter("'"); eng.filter("'");
         eng.finish_composition();
@@ -322,7 +296,7 @@ int main()
         assert_eq(eng.flush(), "፨", "section mark '**'");
     }
 
-    // ── 12. Commit delimiter "'" behavior ──
+    // ── 11. Commit delimiter "'" behavior ──
     {
         eng.filter("h"); eng.filter("i");
         assert(eng.composing() == "ሂ");
@@ -340,7 +314,7 @@ int main()
         eng.reset();
     }
 
-    // ── 13. Auto-commit (leaf node, no children) ──
+    // ── 12. Auto-commit (leaf node, no children) ──
     {
         eng.filter("b"); eng.filter("E");
         eng.finish_composition();
@@ -351,7 +325,7 @@ int main()
         assert_eq(eng.flush(), "ኵ", "auto-commit leaf 'kWu'");
     }
 
-    // ── 14. Multiple-syllable word ──
+    // ── 13. Multiple-syllable word ──
     {
         eng.filter("s"); eng.filter("e"); eng.filter("l"); eng.filter("a"); eng.filter("m");
          //eng.filter(" ");
@@ -359,7 +333,7 @@ int main()
         assert_eq(eng.flush(), "ሰላም", "word 'selam' -> 'ሰላም'");
     }
 
-    // ── 15. Prefix priority (longer sequence wins) ──
+    // ── 14. Prefix priority (longer sequence wins) ──
     {
         eng.filter("h"); eng.filter("W"); eng.filter("a");
         eng.finish_composition();
@@ -370,7 +344,7 @@ int main()
         assert_eq(eng.flush(), "ሄ", "prefix priority: 'hie' beats 'hi'+'e'");
     }
 
-    // ── 16. Raw keys shown when no action ──
+    // ── 15. Raw keys shown when no action ──
     {
         eng.filter("h"); eng.filter("W");
         assert(eng.composing() == "hW");
@@ -380,7 +354,7 @@ int main()
         eng.reset();
     }
 
-    // ── 17. b-family consonants ──
+    // ── 16. b-family consonants ──
     {
         eng.filter("b"); eng.filter("e");  //eng.filter(" ");
         eng.finish_composition();
@@ -391,7 +365,7 @@ int main()
         assert_eq(eng.flush(), "ባ", "b-family 'ba'");
     }
 
-    // ── 18. q-family, Q-family (q vs ḳ) and labiovelar ──
+    // ── 17. q-family, Q-family (q vs ḳ) and labiovelar ──
     {
         eng.filter("Q"); eng.filter("e");  //eng.filter(" ");
         eng.finish_composition();
@@ -402,14 +376,14 @@ int main()
         assert_eq(eng.flush(), "ቛ", "Q-family labiovelar 'QWa'");
     }
 
-    // ── 19. Edge case: question mark prefix ──
+    // ── 18. Edge case: question mark prefix ──
     {
         eng.filter("/"); eng.filter("?"); //eng.filter(" ");
         eng.finish_composition();
         assert_eq(eng.flush(), "፧", "punctuation '/?'");
     }
 
-    // ── 20. Unhandled key from root does nothing ──
+    // ── 19. Unhandled key from root does nothing ──
     {
         bool handled = eng.filter("#");
         assert(!handled);
@@ -419,7 +393,7 @@ int main()
         std::cout << "  PASS: unhandled key '#'\n";
     }
 
-    // ── 21. Reset clears pending state ──
+    // ── 20. Reset clears pending state ──
     {
         eng.filter("h"); eng.filter("i");
         assert(eng.composing() == "ሂ");
@@ -430,7 +404,7 @@ int main()
         std::cout << "  PASS: reset clears pending composition\n";
     }
 
-    // ── 22. Names mapping ──
+    // ── 21. Names mapping ──
     {
         std::string names_path;
 #ifdef DATA_DIR

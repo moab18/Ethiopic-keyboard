@@ -21,7 +21,7 @@ void Logger::enable(const std::string& filepath)
     if (file_ && owned_) {
         fclose(file_);
     }
-    file_ = fopen(filepath.c_str(), "a");
+    file_ = fopen(filepath.c_str(), "w");
     owned_ = (file_ != nullptr);
     if (file_) {
         setbuf(file_, nullptr);
