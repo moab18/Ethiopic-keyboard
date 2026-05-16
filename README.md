@@ -1,6 +1,6 @@
 # Ethiopic Keyboard
 
-A two-layer Ethiopic input method for Linux: a platform-independent C++ core library (`libethio`) and an IBus engine wrapper (`ibus-ethiopic`). Amharic first, then other Ethiopic-script languages. Windows TSF and mobile wrappers planned.
+A two-layer Ethiopic input method for Linux: a platform-independent C++ core library (`libethio`) and an IBus engine wrapper (`ibus-ethiopic`). The JSON mapping covers all Ethiopic Unicode characters — the same engine and mapping work for every Ethiopic-script language (Amharic, Tigrinya, Oromo, Guragigna, etc.). Windows TSF and mobile wrappers planned.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ ethiopic-keyboard/
 │   │   └── engine.cpp                 # Key events, preedit/commit, focus/reset
 │   └── data/
 │       └── ethiopic.xml               # IBus component registration
-├── data/amharic/                      # Amharic SERA mapping files + generation scripts
+├── data/amharic/                      # Amharic SERA mapping + wordlist (template for other languages)
 ├── tests/                             # Standalone test programs
 │   ├── test_mapping.cpp               # Trie construction + JSON loading
 │   ├── test_engine.cpp                # Core engine: key→Ethiopic sequences
@@ -136,114 +136,146 @@ gdb --args /usr/libexec/ibus-engine-ethiopic --ibus
 
 ## Input Methods
 
+The trie engine is language-agnostic — the same `am-sera.json` mapping covers the entire Ethiopic Unicode syllabary and works for any Ethiopic-script language.
+
 ### SERA Transliteration (Default)
 
-Type Amharic using the SERA (System for Ethiopic Representation in ASCII) scheme. The trie engine handles complex prefix disambiguation automatically — longer key sequences take priority over shorter ones, and leaf nodes auto-commit without requiring a delimiter.
+Type using the SERA (System for Ethiopic Representation in ASCII) scheme, supported out of the box for Amharic. The trie engine handles complex prefix disambiguation automatically — longer key sequences take priority over shorter ones, and leaf nodes auto-commit without requiring a delimiter.
+
+#### Design Principles
+
+The character mapping is built for productivity, guided by a few core decisions:
+
+**Leverage existing Latin-to-Ethiopic tradition.** There is a long-established practice of writing Ethiopic words with Latin letters in emails, chats, and social media. The mapping follows the conventions users already know — SERA being the most widely used standard in academia and online communities.
+
+**Provide multiple input paths for the same character.** Users come from different transliteration backgrounds. The engine accepts several equivalent key sequences for many characters (e.g. `sh` or `v` for ሸ; `/a`, `aa`, or `Xe` for ዐ). No single convention is forced.
+
+**Weight character frequency.** Common characters get the shortest, most ergonomic sequences. Rare characters use longer sequences or capital letters. For example, `v` maps to the common š-family (ሸ ሹ ሺ…), while capital `V` maps to the rare v-family (ቨ ቩ ቪ…). The ቨ sound is largely restricted to spoken forms and loanwords — in writing it is almost always replaced with the በ (b) family, making it low-frequency and a natural fit for the capital-letter path.
+
+**Choose capital-letter alternates by shape similarity and home-row convenience.** Alternate consonants are accessed via capital letters that sit on the home row and are visually linked to their lowercase base forms. For instance, `D` maps to ጸ — the ጸ glyph visibly resembles the `d`-based ደ family and the `D` key is under the typist's resting middle finger. Likewise `F` maps to ፀ, echoing the `f`-based ፈ family from the home-row index-finger position. This pattern holds across the board — `S`→ሠ (looks like s-based ሰ), `T`→ጠ (looks like t-based ተ), `Z`→ዠ (looks like z-based ዘ), and so on. The capital key is both easy to reach and easy to remember.
+
+**Avoid non-alphabetic keys for primary input.** Characters like `[`, `]`, `\`, `{`, `}` live at the periphery of the keyboard and require hand movement. They are reserved for their literal passthrough use in programming and technical contexts. The mapping uses only standard QWERTY letter keys, common punctuation, and backtick — everything within the typist's home reach.
+
+**Keep ASCII modifiers minimal.** The mapping is designed for a single keyboard layout with no layer switching. Capital letters serve a deliberate role — they visually signal alternate consonant series (e.g. `S`→ሠ for ś-family vs `s`→ሰ for s-family), acting as a mnemonic rather than an arbitrary modifier. The `'` commit delimiter, `/` prefix, and backtick are the only non-letter keys used structurally.
+
+**Respect literal passthrough.** Any ASCII key not claimed by the mapping (e.g. `#`, `&`, `@`, `~`) falls through to the application unchanged. Users typing code, URLs, or mixed-language text are never blocked by the IME.
+
+The examples below use Amharic; other Ethiopic languages follow the same pattern with their own consonant inventories.
 
 #### Consonant Families
 
-Each consonant has 7 vowel forms (1st–7th order: ä, u, i, a, e, ə, o). The 6th order (ə) uses the bare consonant key (no vowel suffix). The 5th order (e) uses uppercase `E`:
+Each consonant has 7 vowel forms (1st–7th order: ä, u, i, a, e, ə, o). The 6th order (ə) uses the bare key. The 5th order (e) uses uppercase `E`. The alias `ie` works for 5th order and `I` for 6th order on most families.
 
-| Family   | 1st (ä) | 2nd (u) | 3rd (i) | 4th (a) | 5th (e) | 6th (ə) | 7th (o) |
-|----------|---------|---------|---------|---------|---------|---------|---------|
-| h (ሀ)   | `he` ሀ  | `hu` ሁ  | `hi` ሂ  | `ha` ሃ  | `hE` ሄ  | `h` ህ   | `ho` ሆ  |
-| l (ለ)   | `le` ለ  | `lu` ሉ  | `li` ሊ  | `la` ላ  | `lE` ሌ  | `l` ል   | `lo` ሎ  |
-| m (መ)   | `me` መ  | `mu` ሙ  | `mi` ሚ  | `ma` ማ  | `mE` ሜ  | `m` ም   | `mo` ሞ  |
-| r (ረ)   | `re` ረ  | `ru` ሩ  | `ri` ሪ  | `ra` ራ  | `rE` ሬ  | `r` ር   | `ro` ሮ  |
-| s (ሰ)   | `se` ሰ  | `su` ሱ  | `si` ሲ  | `sa` ሳ  | `sE` ሴ  | `s` ስ   | `so` ሶ  |
-| š (ሸ)   | `xe` ሸ  | `xu` ሹ  | `xi` ሺ  | `xa` ሻ  | `xE` ሼ  | `x` ሽ   | `xo` ሾ  |
-| q (ቀ)   | `qe` ቀ  | `qu` ቁ  | `qi` ቂ  | `qa` ቃ  | `qE` ቄ  | `q` ቅ   | `qo` ቆ  |
-| b (በ)   | `be` በ  | `bu` ቡ  | `bi` ቢ  | `ba` ባ  | `bE` ቤ  | `b` ብ   | `bo` ቦ  |
-| t (ተ)   | `te` ተ  | `tu` ቱ  | `ti` ቲ  | `ta` ታ  | `tE` ቴ  | `t` ት   | `to` ቶ  |
-| c (ቸ)   | `ce` ቸ  | `cu` ቹ  | `ci` ቺ  | `ca` ቻ  | `cE` ቼ  | `c` ች   | `co` ቾ  |
-| n (ነ)   | `ne` ነ  | `nu` ኑ  | `ni` ኒ  | `na` ና  | `nE` ኔ  | `n` ን   | `no` ኖ  |
-| k (ከ)   | `ke` ከ  | `ku` ኩ  | `ki` ኪ  | `ka` ካ  | `kE` ኬ  | `k` ክ   | `ko` ኮ  |
-| w (ወ)   | `we` ወ  | `wu` ዉ  | `wi` ዊ  | `wa` ዋ  | `wE` ዌ  | `w` ው   | `wo` ዎ  |
-| z (ዘ)   | `ze` ዘ  | `zu` ዙ  | `zi` ዚ  | `za` ዛ  | `zE` ዜ  | `z` ዝ   | `zo` ዞ  |
-| y (የ)   | `ye` የ  | `yu` ዩ  | `yi` ዪ  | `ya` ያ  | `yE` ዬ  | `y` ይ   | `yo` ዮ  |
-| d (ደ)   | `de` ደ  | `du` ዱ  | `di` ዲ  | `da` ዳ  | `dE` ዴ  | `d` ድ   | `do` ዶ  |
-| j (ጀ)   | `je` ጀ  | `ju` ጁ  | `ji` ጂ  | `ja` ጃ  | `jE` ጄ  | `j` ጅ   | `jo` ጆ  |
-| g (ገ)   | `ge` ገ  | `gu` ጉ  | `gi` ጊ  | `ga` ጋ  | `gE` ጌ  | `g` ግ   | `go` ጎ  |
-| f (ፈ)   | `fe` ፈ  | `fu` ፉ  | `fi` ፊ  | `fa` ፋ  | `fE` ፌ  | `f` ፍ   | `fo` ፎ  |
-| p (ፐ)   | `pe` ፐ  | `pu` ፑ  | `pi` ፒ  | `pa` ፓ  | `pE` ፔ  | `p` ፕ   | `po` ፖ  |
+| Family      | 1st (ä) | 2nd (u) | 3rd (i) | 4th (a) | 5th (e) | 6th (ə) | 7th (o) |
+|-------------|---------|---------|---------|---------|---------|---------|---------|
+| h (ሀ)      | `he` ሀ  | `hu` ሁ  | `hi` ሂ  | `ha` ሃ  | `hE` ሄ  | `h` ህ   | `ho` ሆ  |
+| l (ለ)      | `le` ለ  | `lu` ሉ  | `li` ሊ  | `la` ላ  | `lE` ሌ  | `l` ል   | `lo` ሎ  |
+| m (መ)      | `me` መ  | `mu` ሙ  | `mi` ሚ  | `ma` ማ  | `mE` ሜ  | `m` ም   | `mo` ሞ  |
+| r (ረ)      | `re` ረ  | `ru` ሩ  | `ri` ሪ  | `ra` ራ  | `rE` ሬ  | `r` ር   | `ro` ሮ  |
+| s (ሰ)      | `se` ሰ  | `su` ሱ  | `si` ሲ  | `sa` ሳ  | `sE` ሴ  | `s` ስ   | `so` ሶ  |
+| sh (ሸ)     | `she` ሸ | `shu` ሹ | `shi` ሺ | `sha` ሻ | `shE` ሼ | `sh` ሽ  | `sho` ሾ |
+| q (ቀ)      | `qe` ቀ  | `qu` ቁ  | `qi` ቂ  | `qa` ቃ  | `qE` ቄ  | `q` ቅ   | `qo` ቆ  |
+| b (በ)      | `be` በ  | `bu` ቡ  | `bi` ቢ  | `ba` ባ  | `bE` ቤ  | `b` ብ   | `bo` ቦ  |
+| t (ተ)      | `te` ተ  | `tu` ቱ  | `ti` ቲ  | `ta` ታ  | `tE` ቴ  | `t` ት   | `to` ቶ  |
+| c (ቸ)      | `ce` ቸ  | `cu` ቹ  | `ci` ቺ  | `ca` ቻ  | `cE` ቼ  | `c` ች   | `co` ቾ  |
+| n (ነ)      | `ne` ነ  | `nu` ኑ  | `ni` ኒ  | `na` ና  | `nE` ኔ  | `n` ን   | `no` ኖ  |
+| k (ከ)      | `ke` ከ  | `ku` ኩ  | `ki` ኪ  | `ka` ካ  | `kE` ኬ  | `k` ክ   | `ko` ኮ  |
+| w (ወ)      | `we` ወ  | `wu` ዉ  | `wi` ዊ  | `wa` ዋ  | `wE` ዌ  | `w` ው   | `wo` ዎ  |
+| z (ዘ)      | `ze` ዘ  | `zu` ዙ  | `zi` ዚ  | `za` ዛ  | `zE` ዜ  | `z` ዝ   | `zo` ዞ  |
+| y (የ)      | `ye` የ  | `yu` ዩ  | `yi` ዪ  | `ya` ያ  | `yE` ዬ  | `y` ይ   | `yo` ዮ  |
+| d (ደ)      | `de` ደ  | `du` ዱ  | `di` ዲ  | `da` ዳ  | `dE` ዴ  | `d` ድ   | `do` ዶ  |
+| j (ጀ)      | `je` ጀ  | `ju` ጁ  | `ji` ጂ  | `ja` ጃ  | `jE` ጄ  | `j` ጅ   | `jo` ጆ  |
+| g (ገ)      | `ge` ገ  | `gu` ጉ  | `gi` ጊ  | `ga` ጋ  | `gE` ጌ  | `g` ግ   | `go` ጎ  |
+| f (ፈ)      | `fe` ፈ  | `fu` ፉ  | `fi` ፊ  | `fa` ፋ  | `fE` ፌ  | `f` ፍ   | `fo` ፎ  |
+| P (ፐ)      | `Pe` ፐ  | `Pu` ፑ  | `Pi` ፒ  | `Pa` ፓ  | `PE` ፔ  | `P` ፕ   | `Po` ፖ  |
 
-#### Labiovelar Forms (CV + W)
+Note: `sh` can also be typed as `v` (e.g. `ve`→ሸ). Lowercase `p` maps to the pharyngeal p family (`pe`→ጰ, ጱ, ጲ…). See alternate consonants below.
 
-Four consonant families support labiovelar (qu-, ku-, gu-, hu-) syllables using the `W` infix:
+#### Capital Consonant Alternates
 
-|       | h-family | q-family | k-family | g-family |
-|-------|----------|----------|----------|----------|
-| 1st   | `hWe` ኈ  | `qWe` ቈ  | `kWe` ኰ  | `gWe` ጐ  |
-| 2nd   | `hWu` ኍ  | `qWu` ቝ  | `kWu` ኵ  | `gWu` ጕ  |
-| 3rd   | `hWi` ኊ  | `qWi` ቊ  | `kWi` ኲ  | `gWi` ጒ  |
-| 4th   | `hWa` ኋ  | `qWa` ቋ  | `kWa` ኳ  | `gWa` ጓ  |
-| 5th   | `hWE` ኌ  | `qWE` ቌ  | `kWE` ኴ  | `gWE` ጔ  |
+Several Ethiopic consonants share the same ASCII base letter (e.g. both ሰ and ሠ romanize as "s"). Capital-initial keys access the alternate series:
 
-#### Slash-Prefix Alternatives (for ambiguous consonants)
+| Key | Output | Description |
+|-----|--------|-------------|
+| `Se` | ሠ (ś) | ś-family |
+| `He` | ሐ (ḥ) | ḥ-family |
+| `De` | ጸ (ṣ) | ṣ-family |
+| `Ze` | ዠ (ž) | ž-family |
+| `Te` | ጠ (ṭ) | ṭ-family |
+| `Ce` | ጨ (č') | č'-family (same as `cce`) |
+| `Fe` | ፀ (ś́) | ś́-family |
+| `Pe` | ፐ (p) | standard p (lowercase `p` yields pharyngeal ጰ) |
+| `Qe` | ቐ (ḳ) | ḳ-family + labiovelars `QWe` ቘ etc. |
+| `Ke` | ኸ (ḫ) | ḫ-family + labiovelars `KWe` ዀ etc. |
+| `Ne` | ኘ (ñ) | ñ-family |
+| `Ge` | ጘ (ŋ) | ŋ-family |
+| `Je` | ዸ (ḍ) | ḍ-family |
+| `Ve` | ቨ (v) | v-family |
 
-Consonants that share ASCII transliterations with others can be typed using a `/` prefix:
+All capital families support full 7-vowel conjugation (`Se Su Si Sa SE S So`) and labialized `-Wa` forms where applicable.
 
-| ASCII | Default | /-prefix alt | //-escape lit |
-|-------|---------|-------------|---------------|
-| `s`   | `se` ሰ  | `/se` ሠ     | `//` → `/`   |
-| `h`   | `he` ሀ  | `/he` ኀ     |               |
-| `d`   | `de` ደ  | `/de` ጸ     |               |
-| `z`   | `ze` ዘ  | `/ze` ዠ     |               |
-| `t`   | `te` ተ  | `/te` ጠ     |               |
-| `c`   | `ce` ቸ  | `/ce` ጨ     |               |
-| `f`   | `fe` ፈ  | `/fe` ፀ     |               |
-| `p`   | `pe` ፐ  | `/pe` ጰ     |               |
+#### Slash-Prefix and Double-Consonant
 
-#### Double-Consonant Alternatives
+The `/h` prefix and `hh` doubling both access the ḫ-family (ኀ ኁ ኂ ኃ ኄ ኅ ኆ), including labiovelars (`/hWe` ኈ, `hhWe` ኈ, etc.). These are the only consonant families using `/`-prefix or double-consonant notation. `cc` doubles for the č'-family (`cce`→ጨ).
 
-The same alternate syllables can also be typed with doubled initial consonant keys (no `/` needed):
+`//` escapes to a literal `/`.
 
-| Input | Output | Input | Output |
-|-------|--------|-------|--------|
-| `sse` | ሠ (ś) | `hhe` | ኀ (ḫ) |
-| `dde` | ጸ (ṣ) | `zze` | ዠ (ž) |
-| `tte` | ጠ (ṭ) | `cce` | ጨ (č') |
-| `ffe` | ፀ (ś́) | `ppe` | ጰ (p̣) |
+#### Labiovelar Forms (W-infix)
+
+|       | q-family | k-family | g-family | /h-family |
+|-------|----------|----------|----------|-----------|
+| 1st   | `qWe` ቈ  | `kWe` ኰ  | `gWe` ጐ  | `/hWe` ኈ  |
+| 2nd   |          | `kWu` ኵ  | `gWu` ጕ  | `/hWu` ኍ  |
+| 3rd   | `qWi` ቊ  | `kWi` ኲ  | `gWi` ጒ  | `/hWi` ኊ  |
+| 4th   | `qWa` ቋ  | `kWa` ኳ  | `gWa` ጓ  | `hWa` ኋ   |
+| 5th   | `qWE` ቌ  | `kWE` ኴ  | `gWE` ጔ  | `/hWE` ኌ  |
+
+Note: plain `hWa`→ኋ (4th only) works directly. Other h-family labiovelars require `/hW` or `hhW` prefix. Q-family and K-family labiovelars also exist via capital initials (`QWe`→ቘ, `KWe`→ዀ).
 
 #### Standalone Vowels
 
-Vowels are typed directly. Forms a–ä (አ family) use lowercase; glottal/ə (እ family) use uppercase:
+Vowels typed directly. The `x` prefix is an alternative for the same vowel forms:
 
-| Input | Output | Input | Output |
-|-------|--------|-------|--------|
-| `a`   | አ     | `A`   | ኣ     |
-| `u`   | ኡ     | `U`   | ኡ     |
-| `i`   | ኢ     | `E`   | ኤ     |
-| `e`   | እ     | `I`   | እ     |
-| `o`   | ኦ     | `ea`  | ኧ     |
+| Input | Output | Input | Output | x-prefix | Output |
+|-------|--------|-------|--------|----------|--------|
+| `a`   | አ     | `A`   | ኣ     | `xa`     | ኣ     |
+| `u`   | ኡ     | `U`   | ኡ     | `xu`     | ኡ     |
+| `i`   | ኢ     | `E`   | ኤ     | `xE`     | ኤ     |
+| `e`   | እ     | `I`   | እ     | `x`      | እ     |
+| `o`   | ኦ     | `ea`  | ኧ     | `xea`    | ኧ     |
+|       |        | `ae`  | ኤ     | `xe`     | አ     |
 
 #### Aynu (Pharyngeal) Forms
 
-Pharyngeal vowel-initial syllables use slash-prefix or doubled-vowel notation:
+Three input styles: slash-prefix, doubled-vowel, or capital `X`:
 
-| Input | Output | Input | Output |
-|-------|--------|-------|--------|
-| `/e`  | ዐ     | `ae`  | ዐ     |
-| `/u`  | ዑ     | `uu`  | ዑ     |
-| `/i`  | ዒ     | `ii`  | ዒ     |
-| `/a`  | ዓ     | `aa`  | ዓ     |
-| `/E`  | ዔ     | `EE`  | ዔ     |
-| `/I`  | ዕ     | `ee`  | ዕ     |
-| `/o`  | ዖ     | `oo`  | ዖ     |
+| Slash  | Output | Double | Output | X-form | Output |
+|--------|--------|--------|--------|--------|--------|
+| `/a`   | ዐ     | `aa`   | ዐ     | `Xe`   | ዐ     |
+| `/u`   | ዑ     | `uu`   | ዑ     | `Xu`   | ዑ     |
+| `/i`   | ዒ     | `ii`   | ዒ     | `Xi`   | ዒ     |
+| `/A`   | ዓ     | `AA`   | ዓ     | `Xa`   | ዓ     |
+| `/E`   | ዔ     | `EE`   | ዔ     | `XE`   | ዔ     |
+| `/e`   | ዕ     | `ee`   | ዕ     | `X`    | ዕ     |
+| `/o`   | ዖ     | `oo`   | ዖ     | `Xo`   | ዖ     |
 
 #### Punctuation and Symbols
 
-| Input   | Output | Description          |
-|---------|--------|----------------------|
-| `:`     | ፡     | Word separator       |
-| `::`    | ።     | Full stop / period   |
-| `:::`   | `:`    | Literal colon        |
-| `,`     | ፣     | Comma                |
-| `;;`    | `;`    | Literal semicolon    |
-| `-:`    | ፥     | Preface colon        |
-| `:-`    | ፦     | Question colon       |
-| `**`    | ፨     | Section mark         |
-| `??`    | ፧     | Question mark prefix |
+| Input    | Output | Description          |
+|----------|--------|----------------------|
+| `:`      | ፡     | Word separator       |
+| `::`     | ።     | Full stop / period   |
+| `:::`    | `:`    | Literal colon        |
+| `.`      | ።     | Period (alternative) |
+| `,`      | ፣     | Comma                |
+| `;`      | ፤     | Semicolon            |
+| `;;`     | `;`    | Literal semicolon    |
+| `-:`     | ፥     | Preface colon        |
+| `:-`     | ፦     | Question colon       |
+| `**`     | ፨     | Section mark         |
+| `:|:`    | ፨     | Section mark (alt)   |
+| `/?`     | ፧     | Question mark prefix |
+| `??`     | ፧     | Question mark (alt)  |
 
 #### Ethiopic Numerals
 
@@ -274,14 +306,12 @@ The trie engine handles several cases automatically:
 - **Auto-commit**: When a key sequence reaches a leaf node with no further children, output is committed immediately. Example: `bE` → ቤ (no space needed).
 - **Pending on branch**: When a sequence reaches a node that has children, output stays in preedit until a mismatch, space, or delimiter commits it. Example: `he` shows ሀ in preedit; typing space or a next syllable's first key commits it.
 - **5th order disambiguation**: The 5th order vowel `e` is typed as uppercase `E` to distinguish from the 1st order suffix `e`. Example: `be` = በ (1st), `bE` = ቤ (5th).
-- **Prefix priority**: Longer key sequences win over shorter ones. Example: `hWa` → ኋ (not `ህዋ`), `hee` → ሄ (not `ሀእ`).
+- **Prefix priority**: Longer key sequences win over shorter ones. Example: `hWa` → ኋ (not `ህዋ`), `hie` → ሄ (not `ሂእ`).
 - **Raw keys in preedit**: When no trie action is pending, raw key characters are shown in preedit. Example: typing `hW` shows `hW` until the vowel completes the labiovelar form.
 
 ### Planned
 
 - Word prediction and suggestions (static + dynamic word pools) — **in progress**
-- Typewriter layout (vowel-number suffixes: `h1`=ሀ, `h2`=ሁ, ...)
-- Tigrinya, Guragigna, and other Ethiopic-script languages
 - Windows TSF wrapper
 - Mobile (Android/iOS) wrappers
 
@@ -322,6 +352,6 @@ TBD
 | [ibus-libpinyin](https://github.com/libpinyin/ibus-libpinyin) | C++ core lib + IBus wrapper (architecture model) |
 | [ibus-chewing](https://github.com/chewing/ibus-chewing) | Production C engine with separate core lib |
 | [ibus-tmpl](https://github.com/ibus/ibus-tmpl) | Canonical IBus engine skeleton |
-| [m17n-db `am-sera.mim`](https://git.savannah.nongnu.org/cgit/m17n/m17n-db.git) | Reference Amharic SERA mapping |
+| [m17n-db](https://git.savannah.nongnu.org/cgit/m17n/m17n-db.git) | Reference SERA mappings (Amharic, Tigrinya, etc.) |
 | [ibus-m17n](https://github.com/ibus/ibus-m17n) | IBus ↔ m17n bridge |
 | [IBus DevGuide](https://github.com/ibus/ibus/wiki/DevGuide) | Official IBus developer guide |

@@ -29,7 +29,7 @@ Core input engine mirrors m17n-lib's `MIMMap` trie structure, but in clean C++ w
 ## Key technical facts
 
 - **Ethiopic syllable formula:** `codepoint = BASE_CONSONANT + vowel_offset` where offset ∈ {0..6} for 7 vowels (ä,u,i,a,e,ə,o), with labiovelar offsets {0,1,2,5,8} for kw/gw/qw/hw families.
-- **Input modes supported:** SERA transliteration (default), typewriter (vowel-number suffixes), phonetic.
+- **Input modes supported:** SERA transliteration (default).
 - **Mapping files:** JSON under `data/<language>/<mode>.json` — loaded at runtime by `libethio`. Scriptable auto-generation from Unicode tables.
 - **IBus key event contract:** `process_key_event` receives GDK keysym (e.g., `IBUS_KEY_a`), hardware keycode, modifier mask. Return `TRUE` if consumed, `FALSE` to pass through.
 - **Always skip:** release events (`IBUS_RELEASE_MASK`), Super-key combos (`IBUS_MOD4_MASK`), password fields (`IBUS_INPUT_PURPOSE_PASSWORD`).
@@ -41,7 +41,7 @@ Core input engine mirrors m17n-lib's `MIMMap` trie structure, but in clean C++ w
 2. Build `libethio` (trie engine + JSON loader + unit tests)
 3. Wire `ibus-ethiopic` wrapper (GObject subclass, key event processing, preedit/commit)
 4. Package as an RPM and test on Fedora
-5. Add typewriter layout, then Tigrinya/Oromo, then Windows/mobile wrappers
+5. Add Tigrinya/Oromo mapping files, then Windows/mobile wrappers
 
 ## Style / conventions
 
