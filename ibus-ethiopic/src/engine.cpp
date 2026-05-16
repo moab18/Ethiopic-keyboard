@@ -507,18 +507,18 @@ ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
             std::string(self->priv->core.composing()).c_str(),
             std::string(self->priv->core.produced_text()).c_str());
 
-    commit(self);
-
     if (!handled) {
         ethio::logger.debug("process_key_event: unmapped key='%s', "
                 "appending to produced (produced_ has %zu bytes)",
                 key.c_str(),
                 self->priv->core.produced_text().size());
-        self->priv->core.append_produced(key);
+        self->priv->core.append_produced(key); 
         commit(self);
         handled = true;
     }
-
+    else{
+     commit(self);
+    }
 
     if (!self->priv->word_buffer.empty()) {
         show_suggestions(self);

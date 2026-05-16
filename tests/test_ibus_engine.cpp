@@ -180,7 +180,9 @@ int main()
 
     feed_key(ibus_engine, IBUS_KEY_numbersign);
     assert(preedit_text(engine).empty());
-    assert(drain_commit(engine) == "#");
+    std::string hash_result = drain_commit(engine);
+    std::cout << "drain_commit('#') =" << hash_result << "\n";
+    assert(hash_result == "#");
     std::cout << "  PASS: unmapped '#' -> commit '#'\n";
 
     // Test 12: Pending composition + unmapped ASCII -> both committed
