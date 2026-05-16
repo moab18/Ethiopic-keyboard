@@ -9,7 +9,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 JSON_PATH = SCRIPT_DIR.parent / "data" / "amharic" / "am-sera.json"
-REF_PATH = SCRIPT_DIR.parent / "docs" / "sera-reference.txt"
+REF_PATH = SCRIPT_DIR.parent / "docs" / "ethio-am-sera-reference.txt"
 
 
 def main():
