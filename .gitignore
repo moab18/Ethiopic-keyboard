@@ -1,0 +1,38 @@
+# Build directories
+build/
+build-*/
+!build-run.sh
+
+# Install staging
+install/
+
+# Test binaries (inside build dirs already covered, but just in case)
+*.o
+*.o.d
+*.a
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Log files
+*.log
+/tmp/
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+compile_commands.json
+
+# Session notes
+session-ses_*.md

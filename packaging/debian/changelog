@@ -1,0 +1,5 @@
+ibus-ethiopic (0.1.0-1) unstable; urgency=medium
+
+  * Initial Debian package.
+
+ -- Moab <moab@example.com>  Sat, 16 May 2026 00:00:00 +0000

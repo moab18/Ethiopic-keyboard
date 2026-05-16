@@ -1,0 +1,24 @@
+# Maintainer: Moab <moab@example.com>
+pkgname=ibus-ethiopic
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="IBus engine for Ethiopic input (SERA transliteration)"
+arch=('x86_64')
+url="https://github.com/moab/ethiopic-keyboard"
+license=('GPL3')
+depends=('ibus>=1.5' 'glib2')
+makedepends=('cmake>=3.16' 'gcc')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cmake -B build -S "$srcdir/$pkgname-$pkgver" \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_INSTALL_LIBEXECDIR=/usr/libexec \
+        -DCMAKE_INSTALL_LIBDIR=/usr/lib
+    cmake --build build
+}
+
+package() {
+    cmake --install build --prefix "$pkgdir/usr"
+}

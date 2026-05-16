@@ -29,3 +29,11 @@ target_include_directories(ethio
 )
 
 target_compile_features(ethio PUBLIC cxx_std_17)
+
+install(TARGETS ethio
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(FILES ${HEADERS}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ethio
+)

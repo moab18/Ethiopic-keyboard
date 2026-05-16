@@ -11,7 +11,7 @@
     <textdomain>ibus-ethiopic</textdomain>
 
     <observed-paths>
-        <path>/usr/share/ibus-ethiopic/default.xml</path>
+        <path>@MAPPING_DATA_DIR@/default.xml</path>
     </observed-paths>
     <engines exec="@LIBEXECDIR@/ibus-engine-ethiopic --xml" />
 </component>

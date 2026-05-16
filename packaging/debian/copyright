@@ -1,0 +1,12 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ethiopic-keyboard
+Upstream-Contact: Moab <moab@example.com>
+Source: https://github.com/moab/ethiopic-keyboard
+
+Files: *
+Copyright: 2026 Moab
+License: GPL-3.0-or-later
+
+Files: libethio/include/ethio/json.hpp
+Copyright: 2013-2025 Niels Lohmann
+License: MIT

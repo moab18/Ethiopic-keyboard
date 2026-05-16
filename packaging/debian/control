@@ -1,0 +1,32 @@
+Source: ibus-ethiopic
+Section: utils
+Priority: optional
+Maintainer: Moab <moab@example.com>
+Build-Depends: debhelper-compat (= 13),
+               cmake (>= 3.16),
+               g++ (>= 4:13),
+               libibus-1.0-dev (>= 1.5),
+               libglib2.0-dev,
+               libgio2.0-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/moab/ethiopic-keyboard
+Rules-Requires-Root: no
+
+Package: ibus-ethiopic
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ibus (>= 1.5)
+Description: IBus engine for Ethiopic input
+ A two-layer Ethiopic input method: a platform-independent C++ core
+ library (libethio) and a thin IBus engine wrapper. Supports all
+ Ethiopic-script languages (Amharic, Tigrinya, Oromo, Guragigna, etc.)
+ via SERA transliteration with auto-commit, prefix disambiguation,
+ word suggestions, and labiovelar forms.
+
+Package: libethio-dev
+Architecture: any
+Section: libdevel
+Depends: ibus-ethiopic (= ${binary:Version}), ${misc:Depends}
+Description: Development files for libethio
+ Headers and static library for developing applications or input method
+ wrappers (Windows TSF, macOS IMKit, Android, iOS) using the libethio
+ trie-based Ethiopic input engine.
