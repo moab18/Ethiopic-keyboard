@@ -1,5 +1,7 @@
 # Ethiopic Keyboard
 
+ፈጣን የአማርኛ መጻፊያ ኪቦርድ
+
 A two-layer Ethiopic input method for Linux: a platform-independent C++ core library (`libethio`) and an IBus engine wrapper (`ibus-ethiopic`). The JSON mapping covers all Ethiopic Unicode characters — the same engine and mapping work for every Ethiopic-script language (Amharic, Tigrinya, Oromo, Guragigna, etc.). Windows TSF and mobile wrappers planned.
 
 ## Architecture
@@ -148,7 +150,49 @@ The character mapping is built for productivity, guided by a few core decisions:
 
 **Leverage existing Latin-to-Ethiopic tradition.** There is a long-established practice of writing Ethiopic words with Latin letters in emails, chats, and social media. The mapping follows the conventions users already know — SERA being the most widely used standard in academia and online communities.
 
-**Provide multiple input paths for the same character.** Users come from different transliteration backgrounds. The engine accepts several equivalent key sequences for many characters (e.g. `sh` or `v` for ሸ; `/a`, `aa`, or `Xe` for ዐ). No single convention is forced.
+**Provide multiple input paths for the same character.** Users come from different transliteration backgrounds. The engine accepts several equivalent key sequences for many characters — no single convention is forced. For example, the pharyngeal character ዐ can be typed as `/a`, `aa`, or `Xe`. The ḫ-family (ኀ) can be reached via `/he`, `hhe`, or capital `Ke`. Cross-family examples:
+
+| Target | Path 1 | Path 2 | Path 3 |
+|--------|--------|--------|--------|
+| አ (ʾä) | `a` | `xe` | |
+| ዐ (ʿä) | `/a` | `aa` | `Xe` |
+| ኀ (ḫä) | `/he` | `hhe` | |
+| ሸ (šä) | `she` | `ve` | |
+| ጨ (č̣ä) | `Ce` | `cce` | |
+
+**Include Latin-to-Ethiopic word-building shortcuts.** Beyond character-by-character mapping, common Latin-spelled word fragments are recognized and expanded directly — matching how Amharic speakers naturally construct words in Latin script. This lets users type familiar English-spelled patterns and get correct Ethiopic output:
+
+| Input | Output | Example usage |
+|-------|--------|---------------|
+| `hai` | ሃይ | `hailu` → ሃይሉ (or `haylu` → ሃይሉ), `hhaile` → ኃይሌ |
+| `mai` | ማይ | `maik` → ማይክ |
+| `sai` | ሳይ | `saint` → ሳይንት (Saint) |
+| `gai` | ጋይ | `gaint` → ጋይንት (giant) |
+| `tai` | ታይ | `taitai` → ታይታይ |
+| `bai` | ባይ | `baibel` → ባይብል |
+| `wai` | ዋይ | `wai` → ዋይ |
+| `kai` | ካይ | `kelkai` → ከልካይ |
+| `lai` | ላይ | `lai` → ላይ |
+| `ria` | ርያ | `mariam` → ማርያም |
+| `pia` | ጵያ | `etiyopia` → ኢትዮጵያ |
+| `eth` | ኢትዮጵያ | (recognizes Ethiopia directly) |
+| `axum` | አክሱም |
+
+**Provide word completion and prediction.** A small curated dictionary of common words, names, and bigrams powers inline suggestions. After typing two or more Ethiopic characters, completions appear automatically. 
+For example, after typing `እንደምን` the engine suggests: `ነህ`, `ነሽ`, `አለህ`, `አለሽ`, `ናችሁ`, `አደሩ`. Tab or number keys select the desired completion.
+
+**Use structural characters innovatively.** A small set of ASCII punctuation characters serve double duty as IME controls:
+
+| Character | Role |
+|-----------|------|
+| `'` (single quote) | Commit delimiter — flushes pending composition and starts fresh. `h'h'h` produces ህህህ. `''` escapes to a literal `'`. |
+| `/` (forward slash) | Prefix for alternate consonant families and aynu vowels. `/he`→ኀ, `/a`→ዐ. `//` escapes to literal `/`. |
+| Doubled consonant | Alternative for ḫ-family (`hh`→ኀ) and č̣-family (`cc`→ጨ). |
+| `` ` `` (backtick) | Prefix for Geez numerals: `` `1 ``→፩, `` `10 ``→፲, `` `100 ``→፻. |
+
+**Indian (ASCII) numerals pass through unchanged.** Since 1–9 are far more common in modern Ethiopic writing than Geez numerals (፩–፱), plain digits are not consumed by the IME. Geez numerals are accessed with the backtick prefix when needed.
+
+**Toggle between Ethiopic and English with Ctrl+Shift.** No need to open IBus preferences or cycle through input methods. Pressing `Ctrl+Shift` instantly switches between SERA transliteration mode and plain English passthrough, giving fast bilingual typing without leaving the keyboard.
 
 **Weight character frequency.** Common characters get the shortest, most ergonomic sequences. Rare characters use longer sequences or capital letters. For example, `v` maps to the common š-family (ሸ ሹ ሺ…), while capital `V` maps to the rare v-family (ቨ ቩ ቪ…). The ቨ sound is largely restricted to spoken forms and loanwords — in writing it is almost always replaced with the በ (b) family, making it low-frequency and a natural fit for the capital-letter path.
 
