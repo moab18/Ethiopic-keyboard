@@ -6,7 +6,3 @@ Source: https://github.com/moab18/Ethiopic-keyboard
 Files: *
 Copyright: 2026 Moab
 License: GPL-3.0-or-later
-
-Files: libethio/include/ethio/json.hpp
-Copyright: 2013-2025 Niels Lohmann
-License: MIT

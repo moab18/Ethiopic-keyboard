@@ -384,7 +384,7 @@ Words harvested from the current document's surrounding text, providing context-
 
 ## License
 
-GPL-3.0-or-later. The bundled JSON parser (`libethio/include/ethio/json.hpp`) is MIT-licensed.
+GPL-3.0-or-later
 
 ## References
 
