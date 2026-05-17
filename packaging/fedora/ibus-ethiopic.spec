@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        IBus engine for Ethiopic input
 
 License:        GPL-3.0-or-later
-URL:            https://github.com/moab/ethiopic-keyboard
+URL:            https://github.com/moab18/Ethiopic-keyboard
 Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  cmake >= 3.16
@@ -56,5 +56,5 @@ trie-based Ethiopic input engine.
 %{_libdir}/libethio.a
 
 %changelog
-* Sat May 16 2026 Moab <moab@example.com> - 0.1.0-1
+* Sat May 16 2026 Moab <jansagad@gmail.com> - 0.1.0-1
 - Initial Fedora package

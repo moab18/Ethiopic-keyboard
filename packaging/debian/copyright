@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: ethiopic-keyboard
-Upstream-Contact: Moab <moab@example.com>
-Source: https://github.com/moab/ethiopic-keyboard
+Upstream-Contact: Moab <jansagad@gmail.com>
+Source: https://github.com/moab18/Ethiopic-keyboard
 
 Files: *
 Copyright: 2026 Moab

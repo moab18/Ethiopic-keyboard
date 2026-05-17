@@ -1,10 +1,10 @@
-# Maintainer: Moab <moab@example.com>
+# Maintainer: Moab <jansagad@gmail.com>
 pkgname=ibus-ethiopic
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="IBus engine for Ethiopic input (SERA transliteration)"
 arch=('x86_64')
-url="https://github.com/moab/ethiopic-keyboard"
+url="https://github.com/moab18/Ethiopic-keyboard"
 license=('GPL3')
 depends=('ibus>=1.5' 'glib2')
 makedepends=('cmake>=3.16' 'gcc')

@@ -7,7 +7,7 @@
     <version>0.1.0</version>
     <author>Moab</author>
     <license>GPL-3.0+</license>
-    <homepage>https://github.com/moab/ethiopic-keyboard</homepage>
+    <homepage>https://github.com/moab18/Ethiopic-keyboard</homepage>
     <textdomain>ibus-ethiopic</textdomain>
 
     <observed-paths>

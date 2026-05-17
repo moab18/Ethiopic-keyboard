@@ -1,7 +1,7 @@
 Source: ibus-ethiopic
 Section: utils
 Priority: optional
-Maintainer: Moab <moab@example.com>
+Maintainer: Moab <jansagad@gmail.com>
 Build-Depends: debhelper-compat (= 13),
                cmake (>= 3.16),
                g++ (>= 4:13),
@@ -9,7 +9,7 @@ Build-Depends: debhelper-compat (= 13),
                libglib2.0-dev,
                libgio2.0-dev
 Standards-Version: 4.6.2
-Homepage: https://github.com/moab/ethiopic-keyboard
+Homepage: https://github.com/moab18/Ethiopic-keyboard
 Rules-Requires-Root: no
 
 Package: ibus-ethiopic
