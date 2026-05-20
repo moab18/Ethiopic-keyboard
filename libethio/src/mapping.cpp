@@ -72,7 +72,7 @@ MappingFile load_mapping_file(const std::string &json_path)
 {
     std::ifstream ifs(json_path);
     if (!ifs.is_open()) {
-        throw std::runtime_error("Cannot open mapping file: " + json_path);
+        return MappingFile{};
     }
 
     Json j;

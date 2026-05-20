@@ -43,7 +43,11 @@ void Logger::vlog(const char* level, const char* fmt, va_list ap)
 
     time_t now = time(nullptr);
     struct tm tm_buf;
+#ifdef _WIN32
+    localtime_s(&tm_buf, &now);
+#else
     localtime_r(&now, &tm_buf);
+#endif
 
     fprintf(file_, "%04d-%02d-%02d %02d:%02d:%02d [%-7s] ",
             tm_buf.tm_year + 1900, tm_buf.tm_mon + 1, tm_buf.tm_mday,

@@ -47,7 +47,7 @@ Core input engine mirrors m17n-lib's `MIMMap` trie structure, but in clean C++ w
 
 - **C++ standard:** C++17
 - **Build system:** CMake (3.16+)
-- **JSON library:** nlohmann/json (pkg-config: `nlohmann_json`)
+- **JSON library:** bundled recursive-descent parser (`ethio/json.hpp`, ~255 lines)
 - **IBus version:** ibus-1.0 >= 1.5
 - **GObject macro:** `G_DECLARE_FINAL_TYPE` (modern GLib style)
 - **Testing:** Catch2 or Google Test — core lib tests are platform-independent, IBus integration tests need a D-Bus session
