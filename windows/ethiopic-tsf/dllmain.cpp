@@ -412,7 +412,6 @@ STDAPI DllUnregisterServer(void);
 
 STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void **ppv)
 {
-    MessageBoxA(NULL, "DllGetClassObject called!", "Ethiopic TSF", MB_OK | MB_SYSTEMMODAL);
     reg_log("DllGetClassObject");
     if (!ppv) return E_POINTER;
     *ppv = nullptr;
