@@ -498,7 +498,6 @@ STDMETHODIMP CEthiopicTextService::ActivateEx(ITfThreadMgr *pThreadMgr,
                                                TfClientId tfClientId,
                                                DWORD dwFlags)
 {
-    MessageBoxA(NULL, "ActivateEx called!", "Ethiopic TSF", MB_OK | MB_SYSTEMMODAL);
     elog("ActivateEx begin");
     tlog("ActivateEx begin");
     m_pThreadMgr = pThreadMgr;
