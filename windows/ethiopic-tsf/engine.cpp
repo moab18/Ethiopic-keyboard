@@ -780,20 +780,13 @@ STDMETHODIMP CEthiopicTextService::OnSetFocus(BOOL fForeground)
 STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM wParam,
                                                   LPARAM lParam, BOOL *pfEaten)
 {
+    if (!_IsKeyboardOpen()) {
+        *pfEaten = FALSE;
+        return S_OK;
+    }
+
     char utf8[8] = {};
     vk_to_utf8(wParam, lParam, utf8, sizeof(utf8));
-
-    char b[128];
-    if (utf8[0]) {
-        snprintf(b, sizeof(b), "OnTestKeyDown: vk=0x%04llX utf8='%s' -> EAT",
-                 (unsigned long long)wParam, utf8);
-    } else {
-        snprintf(b, sizeof(b), "OnTestKeyDown: vk=0x%04llX utf8=none -> PASS",
-                 (unsigned long long)wParam);
-    }
-    elog(b);
-    OutputDebugStringA(b);
-    OutputDebugStringA("\n");
 
     if (utf8[0] == '\0') {
         *pfEaten = FALSE;
@@ -816,6 +809,11 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
                                                BOOL *pfEaten)
 {
     tlog("OnKeyDown begin");
+
+    if (!_IsKeyboardOpen()) {
+        *pfEaten = FALSE;
+        return S_OK;
+    }
 
     if (wParam == VK_BACK) {
         if (!m_currentPreedit.empty()) {
