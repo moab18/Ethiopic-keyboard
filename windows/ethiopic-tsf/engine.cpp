@@ -326,16 +326,32 @@ STDMETHODIMP CEthiopicEditSession::DoEditSession(TfEditCookie ec)
         }
         m_pService->EndComposition(ec, nullptr);
 
-        if (!hadComp) {
-            elog("DoEditSession: no composition, inserting at selection");
-            ITfContext *pContext = nullptr;
-            ITfDocumentMgr *pDocMgr = nullptr;
-            if (m_pService->GetThreadMgr() &&
-                SUCCEEDED(m_pService->GetThreadMgr()->GetFocus(&pDocMgr)) && pDocMgr) {
-                pDocMgr->GetTop(&pContext);
-                pDocMgr->Release();
-            }
-            if (pContext) {
+        // Reposition cursor after committed text
+        ITfContext *pContext = nullptr;
+        ITfDocumentMgr *pDocMgr = nullptr;
+        if (m_pService->GetThreadMgr() &&
+            SUCCEEDED(m_pService->GetThreadMgr()->GetFocus(&pDocMgr)) && pDocMgr) {
+            pDocMgr->GetTop(&pContext);
+            pDocMgr->Release();
+        }
+        if (pContext) {
+            if (hadComp) {
+                TF_SELECTION sel = {};
+                ULONG fetched = 0;
+                HRESULT hrGetSel = pContext->GetSelection(ec, TF_DEFAULT_SELECTION,
+                        1, &sel, &fetched);
+                if (SUCCEEDED(hrGetSel) && fetched > 0 && sel.range) {
+                    sel.range->Collapse(ec, TF_ANCHOR_END);
+                    pContext->SetSelection(ec, 0, &sel);
+                    sel.range->Release();
+                    elog("DoEditSession: reposition cursor after composition commit");
+                } else {
+                    snprintf(b, sizeof(b),
+                             "DoEditSession: GetSelection after commit FAILED hr=0x%08lX fetched=%lu",
+                             (unsigned long)hrGetSel, (unsigned long)fetched);
+                    elog(b);
+                }
+            } else {
                 TF_SELECTION sel = {};
                 ULONG fetched = 0;
                 if (SUCCEEDED(pContext->GetSelection(ec, TF_DEFAULT_SELECTION,
@@ -349,8 +365,8 @@ STDMETHODIMP CEthiopicEditSession::DoEditSession(TfEditCookie ec)
                     pContext->SetSelection(ec, 0, &sel);
                     sel.range->Release();
                 }
-                pContext->Release();
             }
+            pContext->Release();
         }
     }
 
@@ -1026,6 +1042,14 @@ void CEthiopicTextService::StartComposition(TfEditCookie ec,
                     pProp->Release();
                 }
             }
+
+            // Reposition cursor to end of preedit text
+            pRange->Collapse(ec, TF_ANCHOR_END);
+            TF_SELECTION selUpdate = {};
+            selUpdate.range = pRange;
+            selUpdate.style.ase = TF_AE_NONE;
+            selUpdate.style.fInterimChar = FALSE;
+            pCtx->SetSelection(ec, 1, &selUpdate);
 
             pRange->Release();
         }
