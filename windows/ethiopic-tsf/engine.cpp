@@ -4,8 +4,10 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <string>
 
+#include "ethio/json.hpp"
 #include "ethio/mapping.h"
 
 static HANDLE get_log_mutex()
@@ -382,9 +384,42 @@ CEthiopicTextService::CEthiopicTextService()
     DllAddRef();
     tlog("CEthiopicTextService ctor begin");
     try {
-        m_mapping = ethio::load_mapping_file(find_data_file());
-        if (!m_mapping.states.empty())
+        std::string data_path = find_data_file();
+        m_mapping = ethio::load_mapping_file(data_path);
+        if (!m_mapping.states.empty()) {
             m_core.load_trie(m_mapping.states[0].trie);
+
+            // Load names.json from the same directory as am-sera.json
+            std::string names_path = data_path;
+            size_t pos = names_path.rfind("am-sera.json");
+            if (pos != std::string::npos)
+                names_path.replace(pos, 13, "names.json");
+            std::ifstream nfs(names_path);
+            if (nfs.is_open()) {
+                ethio::Json names_root;
+                nfs >> names_root;
+                const auto &states = names_root["states"];
+                int count = 0;
+                for (auto sit = states.begin(); sit != states.end(); ++sit) {
+                    const auto &map_entries = sit.value()["map"];
+                    for (auto mit = map_entries.begin();
+                         mit != map_entries.end(); ++mit) {
+                        std::string key = mit.key();
+                        std::string val = mit.value();
+                        if (val.empty())
+                            m_mapping.states[0].trie.insert_commit(key);
+                        else
+                            m_mapping.states[0].trie.insert(key, val);
+                        count++;
+                    }
+                }
+                char b[64];
+                snprintf(b, sizeof(b),
+                         "CEthiopicTextService: loaded %d names", count);
+                elog(b);
+                m_core.load_trie(m_mapping.states[0].trie);
+            }
+        }
     } catch (...) {
         tlog("CEthiopicTextService ctor EXCEPTION");
     }
