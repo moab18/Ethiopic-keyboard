@@ -162,7 +162,6 @@ private:
     BOOL _InitThreadMgrEventSink();
     void _UninitThreadMgrEventSink();
     BOOL _InitDisplayAttributeGuidAtom();
-    BOOL _SetKeyboardOpen(BOOL fOpen);
     BOOL _IsKeyboardOpen();
 
 public:

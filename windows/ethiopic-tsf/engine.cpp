@@ -658,65 +658,9 @@ BOOL CEthiopicTextService::_InitDisplayAttributeGuidAtom()
     return TRUE;
 }
 
-BOOL CEthiopicTextService::_SetKeyboardOpen(BOOL fOpen)
-{
-    if (!m_pThreadMgr) return FALSE;
-
-    ITfCompartmentMgr *pCompMgr = nullptr;
-    if (FAILED(m_pThreadMgr->QueryInterface(IID_ITfCompartmentMgr,
-            (void **)&pCompMgr)))
-        return FALSE;
-
-    ITfCompartment *pComp = nullptr;
-    HRESULT hr = pCompMgr->GetCompartment(GUID_COMPARTMENT_KEYBOARD_OPENCLOSE,
-                                           &pComp);
-    pCompMgr->Release();
-    if (FAILED(hr)) return FALSE;
-
-    VARIANT var;
-    var.vt = VT_I4;
-    var.lVal = fOpen ? 1 : 0;
-    hr = pComp->SetValue(m_tfClientId, &var);
-    pComp->Release();
-    return SUCCEEDED(hr);
-}
-
 BOOL CEthiopicTextService::_IsKeyboardOpen()
 {
-    if (!m_pThreadMgr || !m_activated) {
-        elog("_IsKeyboardOpen: FALSE (no thread mgr or not activated)");
-        return FALSE;
-    }
-
-    ITfCompartmentMgr *pCompMgr = nullptr;
-    if (FAILED(m_pThreadMgr->QueryInterface(IID_ITfCompartmentMgr,
-            (void **)&pCompMgr))) {
-        elog("_IsKeyboardOpen: FALSE (QI failed)");
-        return FALSE;
-    }
-
-    ITfCompartment *pComp = nullptr;
-    HRESULT hr = pCompMgr->GetCompartment(GUID_COMPARTMENT_KEYBOARD_OPENCLOSE,
-                                           &pComp);
-    pCompMgr->Release();
-    if (FAILED(hr)) {
-        elog("_IsKeyboardOpen: FALSE (GetCompartment failed)");
-        return FALSE;
-    }
-
-    VARIANT var;
-    VariantInit(&var);
-    hr = pComp->GetValue(&var);
-    pComp->Release();
-    if (FAILED(hr)) {
-        elog("_IsKeyboardOpen: FALSE (GetValue failed)");
-        return FALSE;
-    }
-
-    BOOL open = (var.vt == VT_I4 && var.lVal != 0);
-    VariantClear(&var);
-    if (!open) elog("_IsKeyboardOpen: FALSE (compartment says closed)");
-    return open ? TRUE : m_activated;
+    return m_activated;
 }
 
 STDMETHODIMP CEthiopicTextService::ActivateEx(ITfThreadMgr *pThreadMgr,
@@ -756,10 +700,6 @@ STDMETHODIMP CEthiopicTextService::ActivateEx(ITfThreadMgr *pThreadMgr,
         elog("ActivateEx: _InitDisplayAttributeGuidAtom FAILED");
         goto ExitError;
     }
-    if (!_SetKeyboardOpen(TRUE)) {
-        elog("ActivateEx: _SetKeyboardOpen FAILED");
-        goto ExitError;
-    }
 
     elog("ActivateEx OK");
     tlog("ActivateEx end");
@@ -787,7 +727,6 @@ STDMETHODIMP CEthiopicTextService::Deactivate()
         m_pComposition = nullptr;
     }
 
-    _SetKeyboardOpen(FALSE);
     _UninitKeyEventSink();
     _UninitTextEditSink();
     _UninitThreadMgrEventSink();
@@ -814,6 +753,42 @@ STDMETHODIMP CEthiopicTextService::OnSetFocus(BOOL fForeground)
     return S_OK;
 }
 
+static bool HasModifier()
+{
+    return (GetAsyncKeyState(VK_CONTROL) & 0x8000) ||
+           (GetAsyncKeyState(VK_MENU) & 0x8000) ||
+           (GetAsyncKeyState(VK_LWIN) & 0x8000) ||
+           (GetAsyncKeyState(VK_RWIN) & 0x8000);
+}
+
+static bool is_key_eaten(WPARAM wParam, LPARAM lParam)
+{
+    if (HasModifier()) {
+        char buf[80];
+        snprintf(buf, sizeof(buf), "is_key_eaten: modifier pressed, pass through (wParam=0x%llX)",
+                 (unsigned long long)wParam);
+        elog(buf);
+        return false;
+    }
+
+    char utf8[8] = {};
+    vk_to_utf8(wParam, lParam, utf8, sizeof(utf8));
+
+    if (utf8[0] == '\0') {
+        return false;
+    }
+
+    unsigned char ch = (unsigned char)utf8[0];
+    if (ch < 0x20 || ch == 0x7F) {
+        char buf[80];
+        snprintf(buf, sizeof(buf), "is_key_eaten: control char 0x%02X, pass through", ch);
+        elog(buf);
+        return false;
+    }
+
+    return true;
+}
+
 STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM wParam,
                                                   LPARAM lParam, BOOL *pfEaten)
 {
@@ -822,15 +797,7 @@ STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM wParam,
         return S_OK;
     }
 
-    char utf8[8] = {};
-    vk_to_utf8(wParam, lParam, utf8, sizeof(utf8));
-
-    if (utf8[0] == '\0') {
-        *pfEaten = FALSE;
-        return S_OK;
-    }
-
-    *pfEaten = TRUE;
+    *pfEaten = is_key_eaten(wParam, lParam) ? TRUE : FALSE;
     return S_OK;
 }
 
@@ -871,12 +838,13 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
         return S_OK;
     }
 
-    char utf8[8] = {};
-    vk_to_utf8(wParam, lParam, utf8, sizeof(utf8));
-    if (utf8[0] == '\0') {
+    if (!is_key_eaten(wParam, lParam)) {
         *pfEaten = FALSE;
         return S_OK;
     }
+
+    char utf8[8] = {};
+    vk_to_utf8(wParam, lParam, utf8, sizeof(utf8));
 
     if (m_testMode) {
         ProcessKeyUtf8(utf8);
