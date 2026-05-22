@@ -50,6 +50,19 @@ static void elog(const char *msg)
     if (hMutex) ReleaseMutex(hMutex);
 }
 
+static bool g_dllUnloading = false;
+
+void MarkDllUnloading()
+{
+    g_dllUnloading = true;
+    elog("MarkDllUnloading: DLL is unloading");
+}
+
+bool IsDllUnloading()
+{
+    return g_dllUnloading;
+}
+
 #ifdef ETHIOPIC_TEST_STUBS
 void DllAddRef() {}
 void DllRelease() {}
@@ -485,15 +498,15 @@ STDMETHODIMP CEthiopicTextService::QueryInterface(REFIID riid, void **ppv)
 
 STDMETHODIMP_(ULONG) CEthiopicTextService::AddRef()
 {
-    return ++m_cRef;
+    return InterlockedIncrement(&m_cRef);
 }
 
 STDMETHODIMP_(ULONG) CEthiopicTextService::Release()
 {
-    LONG cr = --m_cRef;
-    if (m_cRef == 0)
+    LONG cr = InterlockedDecrement(&m_cRef);
+    if (cr == 0)
         delete this;
-    return cr;
+    return (ULONG)cr;
 }
 
 BOOL CEthiopicTextService::_InitKeyEventSink()
@@ -710,6 +723,10 @@ STDMETHODIMP CEthiopicTextService::ActivateEx(ITfThreadMgr *pThreadMgr,
                                                TfClientId tfClientId,
                                                DWORD dwFlags)
 {
+    if (IsDllUnloading()) {
+        elog("ActivateEx: DLL is unloading, refusing");
+        return E_FAIL;
+    }
     elog("ActivateEx begin");
     tlog("ActivateEx begin");
     m_pThreadMgr = pThreadMgr;
@@ -757,6 +774,10 @@ ExitError:
 
 STDMETHODIMP CEthiopicTextService::Deactivate()
 {
+    if (IsDllUnloading()) {
+        elog("Deactivate: DLL is unloading, skipping cleanup");
+        return S_OK;
+    }
     elog("Deactivate called");
     tlog("Deactivate");
     m_activated = false;

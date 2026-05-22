@@ -12,6 +12,8 @@
 void DllAddRef();
 void DllRelease();
 HMODULE DllModuleHandle();
+void MarkDllUnloading();
+bool IsDllUnloading();
 
 #ifndef __ITfTextInputProcessorEx_FWD_DEFINED__
 #define __ITfTextInputProcessorEx_FWD_DEFINED__

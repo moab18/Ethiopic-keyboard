@@ -449,6 +449,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID pvReserved)
         break;
 
     case DLL_PROCESS_DETACH:
+        MarkDllUnloading();
         if (g_pClassFactory) {
             delete g_pClassFactory;
             g_pClassFactory = nullptr;
