@@ -781,6 +781,26 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
                                                BOOL *pfEaten)
 {
     tlog("OnKeyDown begin");
+
+    if (wParam == VK_BACK) {
+        if (!m_currentPreedit.empty()) {
+            elog("OnKeyDown: VK_BACK with preedit -> reset composition");
+            m_core.reset();
+            m_currentPreedit.clear();
+            CEthiopicEditSession *session = new CEthiopicEditSession(
+                this, "", "");
+            HRESULT hr = S_OK;
+            pContext->RequestEditSession(m_tfClientId, session,
+                TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+            session->Release();
+            *pfEaten = TRUE;
+        } else {
+            elog("OnKeyDown: VK_BACK, nothing composing -> pass through");
+            *pfEaten = FALSE;
+        }
+        return S_OK;
+    }
+
     char utf8[8] = {};
     vk_to_utf8(wParam, lParam, utf8, sizeof(utf8));
     if (utf8[0] == '\0') {
