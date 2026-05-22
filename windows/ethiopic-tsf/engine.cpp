@@ -727,6 +727,11 @@ STDMETHODIMP CEthiopicTextService::Deactivate()
         m_pComposition = nullptr;
     }
 
+    if (m_core.passthrough()) {
+        m_core.toggle_passthrough();
+        elog("Deactivate: reset passthrough state to OFF");
+    }
+
     _UninitKeyEventSink();
     _UninitTextEditSink();
     _UninitThreadMgrEventSink();
@@ -797,6 +802,11 @@ STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM wParam,
         return S_OK;
     }
 
+    if (m_core.passthrough()) {
+        *pfEaten = FALSE;
+        return S_OK;
+    }
+
     *pfEaten = is_key_eaten(wParam, lParam) ? TRUE : FALSE;
     return S_OK;
 }
@@ -815,6 +825,42 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
     tlog("OnKeyDown begin");
 
     if (!_IsKeyboardOpen()) {
+        *pfEaten = FALSE;
+        return S_OK;
+    }
+
+    {
+        bool ctrlHeld  = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+        bool shiftHeld = (GetAsyncKeyState(VK_SHIFT)   & 0x8000) != 0;
+        bool shiftKey  = (wParam == VK_SHIFT  || wParam == VK_LSHIFT  || wParam == VK_RSHIFT);
+        bool ctrlKey   = (wParam == VK_CONTROL || wParam == VK_LCONTROL || wParam == VK_RCONTROL);
+
+        if ((shiftKey && ctrlHeld) || (ctrlKey && shiftHeld)) {
+            m_core.toggle_passthrough();
+            m_core.reset();
+            m_currentPreedit.clear();
+
+            if (m_pComposition) {
+                CEthiopicEditSession *session = new CEthiopicEditSession(
+                    this, "", "");
+                HRESULT hr = S_OK;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            }
+
+            char b[96];
+            snprintf(b, sizeof(b),
+                     "OnKeyDown: Ctrl+Shift toggle -> passthrough=%s",
+                     m_core.passthrough() ? "ON" : "OFF");
+            elog(b);
+
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+    }
+
+    if (m_core.passthrough()) {
         *pfEaten = FALSE;
         return S_OK;
     }

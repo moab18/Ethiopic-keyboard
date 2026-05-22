@@ -227,6 +227,64 @@ int main()
         svc->ResetTest();
     }
 
+    // Test 18: Default passthrough state is OFF
+    {
+        assert(!svc->IsPassthrough());
+        std::cout << "  PASS: default passthrough state is OFF\n";
+    }
+
+    // Test 19: Passthrough ON — keys pass through without composition
+    {
+        svc->SetPassthroughForTest(true);
+        assert(svc->IsPassthrough());
+        feed_utf8(svc, "h");
+        assert(committed(svc) == "h");
+        assert(preedit(svc).empty());
+        std::cout << "  PASS: passthrough ON -> 'h' committed as raw 'h'\n";
+        svc->ResetTest();
+    }
+
+    // Test 20: Passthrough ON — multi-char sequence passes through unchanged
+    {
+        svc->SetPassthroughForTest(true);
+        feed_utf8(svc, "h");
+        feed_utf8(svc, "e");
+        feed_utf8(svc, "l");
+        feed_utf8(svc, "l");
+        feed_utf8(svc, "o");
+        assert(committed(svc) == "hello");
+        assert(preedit(svc).empty());
+        std::cout << "  PASS: passthrough ON -> 'hello' committed as raw 'hello'\n";
+        svc->ResetTest();
+    }
+
+    // Test 21: Toggle back to Ethiopic — SERA transliteration resumes
+    {
+        svc->SetPassthroughForTest(true);
+        svc->SetPassthroughForTest(false);
+        assert(!svc->IsPassthrough());
+
+        feed_utf8(svc, "h");
+        feed_utf8(svc, "e");
+        assert(committed(svc) == "\xe1\x88\x80");   // ሀ = U+1200
+        assert(preedit(svc).empty());
+        std::cout << "  PASS: after toggle back, 'he' -> 'ሀ'\n";
+        svc->ResetTest();
+    }
+
+    // Test 22: Passthrough persists across ResetTest
+    {
+        svc->SetPassthroughForTest(true);
+        feed_utf8(svc, "x");
+        svc->ResetTest();
+        assert(svc->IsPassthrough());
+        assert(committed(svc).empty());
+        assert(preedit(svc).empty());
+        std::cout << "  PASS: passthrough persists across ResetTest\n";
+        svc->SetPassthroughForTest(false);
+        svc->ResetTest();
+    }
+
     delete svc;
     std::cout << "\nAll TSF engine tests passed.\n";
     return 0;

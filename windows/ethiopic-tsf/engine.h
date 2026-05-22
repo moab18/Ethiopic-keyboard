@@ -154,6 +154,11 @@ public:
     void ResetTest();
     void ProcessKeyUtf8(const char *utf8);
 
+    bool IsPassthrough() const { return m_core.passthrough(); }
+    void SetPassthroughForTest(bool on) {
+        if (m_core.passthrough() != on) m_core.toggle_passthrough();
+    }
+
 private:
     BOOL _InitKeyEventSink();
     void _UninitKeyEventSink();
