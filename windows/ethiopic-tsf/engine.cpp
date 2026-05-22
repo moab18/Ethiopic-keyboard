@@ -8,8 +8,24 @@
 
 #include "ethio/mapping.h"
 
+static HANDLE get_log_mutex()
+{
+    static HANDLE hMutex = CreateMutexA(NULL, FALSE, "Local\\EthiopicTSF_LogMutex");
+    return hMutex;
+}
+
 static void elog(const char *msg)
 {
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+    DWORD pid = GetCurrentProcessId();
+    DWORD tid = GetCurrentThreadId();
+    char buf[512];
+    int n = snprintf(buf, sizeof(buf), "[EthiopicTSF] %02d:%02d:%02d.%03d [pid=%lu tid=%lu] %s\n",
+                     st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
+                     pid, tid, msg);
+    if (n > 0) OutputDebugStringA(buf);
+
     static char path[MAX_PATH];
     static bool path_init = false;
     if (!path_init) {
@@ -18,14 +34,18 @@ static void elog(const char *msg)
         path_init = true;
     }
 
-    SYSTEMTIME st;
-    GetLocalTime(&st);
+    HANDLE hMutex = get_log_mutex();
+    if (hMutex) WaitForSingleObject(hMutex, 5000);
+
     FILE *f = fopen(path, "a");
     if (f) {
-        fprintf(f, "%02d:%02d:%02d.%03d  %s\n",
-                st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, msg);
+        fprintf(f, "%02d:%02d:%02d.%03d [%lu %lu] v2|%s\n",
+                st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
+                pid, tid, msg);
         fclose(f);
     }
+
+    if (hMutex) ReleaseMutex(hMutex);
 }
 
 #ifdef ETHIOPIC_TEST_STUBS
@@ -289,31 +309,57 @@ STDMETHODIMP CEthiopicEditSession::DoEditSession(TfEditCookie ec)
 {
     if (!m_pService) return E_FAIL;
 
-    if (!m_preeditText.empty()) {
-        m_pService->StartComposition(ec, nullptr, m_preeditText);
-    } else if (!m_commitText.empty()) {
+    char b[256];
+
+    // 1. Handle commit text (may be combined with preedit)
+    if (!m_commitText.empty()) {
+        snprintf(b, sizeof(b), "DoEditSession: COMMIT text='%s'",
+                 m_commitText.c_str());
+        elog(b);
+
+        bool hadComp = m_pService->HasComposition();
+        if (hadComp) {
+            elog("DoEditSession: had composition, replacing text before EndComposition");
+            m_pService->UpdateComposition(ec, m_commitText);
+        }
         m_pService->EndComposition(ec, nullptr);
-        ITfContext *pContext = nullptr;
-        ITfDocumentMgr *pDocMgr = nullptr;
-        if (m_pService->GetThreadMgr() &&
-            SUCCEEDED(m_pService->GetThreadMgr()->GetFocus(&pDocMgr)) && pDocMgr) {
-            pDocMgr->GetTop(&pContext);
-            pDocMgr->Release();
-        }
-        if (pContext) {
-            TF_SELECTION sel = {};
-            ULONG fetched = 0;
-            if (SUCCEEDED(pContext->GetSelection(ec, TF_DEFAULT_SELECTION,
-                    1, &sel, &fetched)) && fetched > 0 && sel.range) {
-                std::wstring wtext = utf8_to_wstring(m_commitText);
-                sel.range->SetText(ec, 0, wtext.c_str(), (LONG)wtext.size());
-                sel.range->Collapse(ec, TF_ANCHOR_END);
-                pContext->SetSelection(ec, 0, &sel);
-                sel.range->Release();
+
+        if (!hadComp) {
+            elog("DoEditSession: no composition, inserting at selection");
+            ITfContext *pContext = nullptr;
+            ITfDocumentMgr *pDocMgr = nullptr;
+            if (m_pService->GetThreadMgr() &&
+                SUCCEEDED(m_pService->GetThreadMgr()->GetFocus(&pDocMgr)) && pDocMgr) {
+                pDocMgr->GetTop(&pContext);
+                pDocMgr->Release();
             }
-            pContext->Release();
+            if (pContext) {
+                TF_SELECTION sel = {};
+                ULONG fetched = 0;
+                if (SUCCEEDED(pContext->GetSelection(ec, TF_DEFAULT_SELECTION,
+                        1, &sel, &fetched)) && fetched > 0 && sel.range) {
+                    std::wstring wtext = utf8_to_wstring(m_commitText);
+                    snprintf(b, sizeof(b), "DoEditSession: SetText '%s' at selection",
+                             m_commitText.c_str());
+                    elog(b);
+                    sel.range->SetText(ec, 0, wtext.c_str(), (LONG)wtext.size());
+                    sel.range->Collapse(ec, TF_ANCHOR_END);
+                    pContext->SetSelection(ec, 0, &sel);
+                    sel.range->Release();
+                }
+                pContext->Release();
+            }
         }
-    } else {
+    }
+
+    // 2. Handle preedit text (may be combined with commit above)
+    if (!m_preeditText.empty()) {
+        snprintf(b, sizeof(b), "DoEditSession: PREEDIT text='%s'",
+                 m_preeditText.c_str());
+        elog(b);
+        m_pService->StartComposition(ec, nullptr, m_preeditText);
+    } else if (m_commitText.empty()) {
+        elog("DoEditSession: END-ONLY path (no preedit, no commit)");
         m_pService->EndComposition(ec, nullptr);
     }
 
@@ -326,6 +372,8 @@ CEthiopicTextService::CEthiopicTextService()
     , m_dwActivateFlags(0)
     , m_activated(false)
     , m_dwThreadMgrCookie(TF_INVALID_COOKIE)
+    , m_dwTextEditCookie(TF_INVALID_COOKIE)
+    , m_pTextEditSinkContext(nullptr)
     , m_pThreadMgr(nullptr)
     , m_pComposition(nullptr)
     , m_gaDisplayAttributeInput(TF_INVALID_GUIDATOM)
@@ -368,6 +416,8 @@ STDMETHODIMP CEthiopicTextService::QueryInterface(REFIID riid, void **ppv)
         *ppv = static_cast<ITfTextInputProcessorEx *>(this);
     } else if (IsEqualIID(riid, __uuidof(ITfKeyEventSink))) {
         *ppv = static_cast<ITfKeyEventSink *>(this);
+    } else if (IsEqualIID(riid, __uuidof(ITfTextEditSink))) {
+        *ppv = static_cast<ITfTextEditSink *>(this);
     } else if (IsEqualIID(riid, __uuidof(ITfThreadMgrEventSink))) {
         *ppv = static_cast<ITfThreadMgrEventSink *>(this);
     } else if (IsEqualIID(riid, __uuidof(ITfCompositionSink))) {
@@ -399,12 +449,18 @@ BOOL CEthiopicTextService::_InitKeyEventSink()
 {
     ITfKeystrokeMgr *pKeystrokeMgr = nullptr;
     if (FAILED(m_pThreadMgr->QueryInterface(IID_ITfKeystrokeMgr,
-            (void **)&pKeystrokeMgr)))
+            (void **)&pKeystrokeMgr))) {
+        elog("_InitKeyEventSink: QI for ITfKeystrokeMgr FAILED");
         return FALSE;
+    }
 
     HRESULT hr = pKeystrokeMgr->AdviseKeyEventSink(
         m_tfClientId, static_cast<ITfKeyEventSink *>(this), TRUE);
     pKeystrokeMgr->Release();
+
+    char buf[64];
+    snprintf(buf, sizeof(buf), "_InitKeyEventSink: hr=0x%08lX", (unsigned long)hr);
+    elog(buf);
     return SUCCEEDED(hr);
 }
 
@@ -417,6 +473,73 @@ void CEthiopicTextService::_UninitKeyEventSink()
 
     pKeystrokeMgr->UnadviseKeyEventSink(m_tfClientId);
     pKeystrokeMgr->Release();
+}
+
+BOOL CEthiopicTextService::_InitTextEditSink(ITfDocumentMgr *pDocMgr)
+{
+    ITfSource *pSource = nullptr;
+
+    if (m_dwTextEditCookie != TF_INVALID_COOKIE) {
+        if (m_pTextEditSinkContext &&
+            SUCCEEDED(m_pTextEditSinkContext->QueryInterface(IID_ITfSource,
+                    (void **)&pSource))) {
+            pSource->UnadviseSink(m_dwTextEditCookie);
+            pSource->Release();
+        }
+        if (m_pTextEditSinkContext) {
+            m_pTextEditSinkContext->Release();
+            m_pTextEditSinkContext = nullptr;
+        }
+        m_dwTextEditCookie = TF_INVALID_COOKIE;
+    }
+
+    if (!pDocMgr)
+        return TRUE;
+
+    ITfContext *pContext = nullptr;
+    if (FAILED(pDocMgr->GetTop(&pContext)))
+        return FALSE;
+
+    if (!pContext)
+        return TRUE;
+
+    BOOL ret = FALSE;
+    if (SUCCEEDED(pContext->QueryInterface(IID_ITfSource, (void **)&pSource))) {
+        HRESULT hr = pSource->AdviseSink(IID_ITfTextEditSink,
+            static_cast<ITfTextEditSink *>(this), &m_dwTextEditCookie);
+        if (SUCCEEDED(hr)) {
+            m_pTextEditSinkContext = pContext;
+            m_pTextEditSinkContext->AddRef();
+            ret = TRUE;
+            char buf[64];
+            snprintf(buf, sizeof(buf), "_InitTextEditSink: hr=0x%08lX", (unsigned long)hr);
+            elog(buf);
+        } else {
+            m_dwTextEditCookie = TF_INVALID_COOKIE;
+            char buf[64];
+            snprintf(buf, sizeof(buf), "_InitTextEditSink FAILED: hr=0x%08lX", (unsigned long)hr);
+            elog(buf);
+        }
+        pSource->Release();
+    }
+
+    pContext->Release();
+    return ret;
+}
+
+void CEthiopicTextService::_UninitTextEditSink()
+{
+    if (m_dwTextEditCookie != TF_INVALID_COOKIE && m_pTextEditSinkContext) {
+        ITfSource *pSource = nullptr;
+        if (SUCCEEDED(m_pTextEditSinkContext->QueryInterface(IID_ITfSource,
+                (void **)&pSource))) {
+            pSource->UnadviseSink(m_dwTextEditCookie);
+            pSource->Release();
+        }
+        m_pTextEditSinkContext->Release();
+        m_pTextEditSinkContext = nullptr;
+        m_dwTextEditCookie = TF_INVALID_COOKIE;
+    }
 }
 
 BOOL CEthiopicTextService::_InitThreadMgrEventSink()
@@ -494,6 +617,44 @@ BOOL CEthiopicTextService::_SetKeyboardOpen(BOOL fOpen)
     return SUCCEEDED(hr);
 }
 
+BOOL CEthiopicTextService::_IsKeyboardOpen()
+{
+    if (!m_pThreadMgr || !m_activated) {
+        elog("_IsKeyboardOpen: FALSE (no thread mgr or not activated)");
+        return FALSE;
+    }
+
+    ITfCompartmentMgr *pCompMgr = nullptr;
+    if (FAILED(m_pThreadMgr->QueryInterface(IID_ITfCompartmentMgr,
+            (void **)&pCompMgr))) {
+        elog("_IsKeyboardOpen: FALSE (QI failed)");
+        return FALSE;
+    }
+
+    ITfCompartment *pComp = nullptr;
+    HRESULT hr = pCompMgr->GetCompartment(GUID_COMPARTMENT_KEYBOARD_OPENCLOSE,
+                                           &pComp);
+    pCompMgr->Release();
+    if (FAILED(hr)) {
+        elog("_IsKeyboardOpen: FALSE (GetCompartment failed)");
+        return FALSE;
+    }
+
+    VARIANT var;
+    VariantInit(&var);
+    hr = pComp->GetValue(&var);
+    pComp->Release();
+    if (FAILED(hr)) {
+        elog("_IsKeyboardOpen: FALSE (GetValue failed)");
+        return FALSE;
+    }
+
+    BOOL open = (var.vt == VT_I4 && var.lVal != 0);
+    VariantClear(&var);
+    if (!open) elog("_IsKeyboardOpen: FALSE (compartment says closed)");
+    return open ? TRUE : m_activated;
+}
+
 STDMETHODIMP CEthiopicTextService::ActivateEx(ITfThreadMgr *pThreadMgr,
                                                TfClientId tfClientId,
                                                DWORD dwFlags)
@@ -510,6 +671,15 @@ STDMETHODIMP CEthiopicTextService::ActivateEx(ITfThreadMgr *pThreadMgr,
         elog("ActivateEx: _InitThreadMgrEventSink FAILED");
         goto ExitError;
     }
+
+    {
+        ITfDocumentMgr *pDocMgrFocus = nullptr;
+        if (SUCCEEDED(m_pThreadMgr->GetFocus(&pDocMgrFocus)) && pDocMgrFocus) {
+            _InitTextEditSink(pDocMgrFocus);
+            pDocMgrFocus->Release();
+        }
+    }
+
     if (!_InitKeyEventSink()) {
         elog("ActivateEx: _InitKeyEventSink FAILED");
         goto ExitError;
@@ -547,6 +717,7 @@ STDMETHODIMP CEthiopicTextService::Deactivate()
 
     _SetKeyboardOpen(FALSE);
     _UninitKeyEventSink();
+    _UninitTextEditSink();
     _UninitThreadMgrEventSink();
 
     if (m_pThreadMgr) {
@@ -562,14 +733,38 @@ STDMETHODIMP CEthiopicTextService::Deactivate()
     return S_OK;
 }
 
-STDMETHODIMP CEthiopicTextService::OnSetFocus(BOOL)
+STDMETHODIMP CEthiopicTextService::OnSetFocus(BOOL fForeground)
 {
+    char b[64];
+    snprintf(b, sizeof(b), "[EthiopicTSF] KeyEventSink::OnSetFocus fg=%d\n", (int)fForeground);
+    OutputDebugStringA(b);
+    elog(b);
     return S_OK;
 }
 
-STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM,
-                                                  LPARAM, BOOL *pfEaten)
+STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM wParam,
+                                                  LPARAM lParam, BOOL *pfEaten)
 {
+    char utf8[8] = {};
+    vk_to_utf8(wParam, lParam, utf8, sizeof(utf8));
+
+    char b[128];
+    if (utf8[0]) {
+        snprintf(b, sizeof(b), "OnTestKeyDown: vk=0x%04llX utf8='%s' -> EAT",
+                 (unsigned long long)wParam, utf8);
+    } else {
+        snprintf(b, sizeof(b), "OnTestKeyDown: vk=0x%04llX utf8=none -> PASS",
+                 (unsigned long long)wParam);
+    }
+    elog(b);
+    OutputDebugStringA(b);
+    OutputDebugStringA("\n");
+
+    if (utf8[0] == '\0') {
+        *pfEaten = FALSE;
+        return S_OK;
+    }
+
     *pfEaten = TRUE;
     return S_OK;
 }
@@ -599,13 +794,27 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
         return S_OK;
     }
 
+    char b[256];
+    snprintf(b, sizeof(b),
+             "OnKeyDown: key='%s' pre-state: composing='%s' pending='%s'",
+             utf8, m_core.composing().data(), m_core.produced_text().data());
+    elog(b);
+
     bool handled = m_core.filter(std::string_view(utf8));
     if (!handled) {
+        snprintf(b, sizeof(b), "OnKeyDown: filter returned FALSE for '%s', appending to produced",
+                 utf8);
+        elog(b);
         m_core.append_produced(utf8);
     }
 
     std::string produced = m_core.flush();
     std::string composing(m_core.composing());
+
+    snprintf(b, sizeof(b),
+             "OnKeyDown: result produced='%s' composing='%s'",
+             produced.c_str(), composing.c_str());
+    elog(b);
 
     CEthiopicEditSession *session = new CEthiopicEditSession(
         this, produced, composing);
@@ -633,6 +842,12 @@ STDMETHODIMP CEthiopicTextService::OnPreservedKey(ITfContext *, REFGUID,
     return S_OK;
 }
 
+STDMETHODIMP CEthiopicTextService::OnEndEdit(ITfContext *, TfEditCookie,
+                                              ITfEditRecord *)
+{
+    return S_OK;
+}
+
 STDMETHODIMP CEthiopicTextService::OnInitDocumentMgr(ITfDocumentMgr *)
 {
     return S_OK;
@@ -643,9 +858,10 @@ STDMETHODIMP CEthiopicTextService::OnUninitDocumentMgr(ITfDocumentMgr *)
     return S_OK;
 }
 
-STDMETHODIMP CEthiopicTextService::OnSetFocus(ITfDocumentMgr *,
+STDMETHODIMP CEthiopicTextService::OnSetFocus(ITfDocumentMgr *pDimFocus,
                                                ITfDocumentMgr *)
 {
+    _InitTextEditSink(pDimFocus);
     return S_OK;
 }
 
@@ -697,6 +913,7 @@ void CEthiopicTextService::StartComposition(TfEditCookie ec,
                                              ITfContext *pContext,
                                              const std::string &text)
 {
+    char b[256];
     ITfContext *pCtx = pContext;
     if (!pCtx) {
         ITfDocumentMgr *pDocMgr = nullptr;
@@ -706,9 +923,15 @@ void CEthiopicTextService::StartComposition(TfEditCookie ec,
             pDocMgr->Release();
         }
     }
-    if (!pCtx) return;
+    if (!pCtx) {
+        elog("StartComposition: no context, returning");
+        return;
+    }
 
     if (!m_pComposition) {
+        snprintf(b, sizeof(b), "StartComposition: creating new composition for '%s'",
+                 text.c_str());
+        elog(b);
         ITfContextComposition *pContextComp = nullptr;
         if (SUCCEEDED(pCtx->QueryInterface(
                 __uuidof(ITfContextComposition),
@@ -720,8 +943,13 @@ void CEthiopicTextService::StartComposition(TfEditCookie ec,
                 pContextComp->StartComposition(ec, sel.range, this,
                                                &m_pComposition);
                 sel.range->Release();
+                elog("StartComposition: StartComposition succeeded");
+            } else {
+                elog("StartComposition: GetSelection failed or empty");
             }
             pContextComp->Release();
+        } else {
+            elog("StartComposition: QI for ITfContextComposition FAILED");
         }
     }
 
@@ -729,6 +957,9 @@ void CEthiopicTextService::StartComposition(TfEditCookie ec,
         ITfRange *pRange = nullptr;
         if (SUCCEEDED(m_pComposition->GetRange(&pRange)) && pRange) {
             std::wstring wtext = utf8_to_wstring(text);
+            snprintf(b, sizeof(b), "StartComposition: SetText '%s' on composition range",
+                     text.c_str());
+            elog(b);
             pRange->SetText(ec, 0, wtext.c_str(), (LONG)wtext.size());
 
             if (m_gaDisplayAttributeInput != TF_INVALID_GUIDATOM) {
@@ -755,7 +986,15 @@ void CEthiopicTextService::StartComposition(TfEditCookie ec,
 void CEthiopicTextService::UpdateComposition(TfEditCookie ec,
                                               const std::string &text)
 {
-    if (!m_pComposition) return;
+    if (!m_pComposition) {
+        elog("UpdateComposition: no composition, skipping");
+        return;
+    }
+
+    char b[256];
+    snprintf(b, sizeof(b), "UpdateComposition: text='%s'",
+             text.c_str());
+    elog(b);
 
     ITfRange *pRange = nullptr;
     if (SUCCEEDED(m_pComposition->GetRange(&pRange)) && pRange) {
@@ -772,9 +1011,12 @@ void CEthiopicTextService::UpdateComposition(TfEditCookie ec,
 void CEthiopicTextService::EndComposition(TfEditCookie ec, ITfContext *)
 {
     if (m_pComposition) {
+        elog("EndComposition: ending composition");
         m_pComposition->EndComposition(ec);
         m_pComposition->Release();
         m_pComposition = nullptr;
+    } else {
+        elog("EndComposition: no composition to end");
     }
     m_currentPreedit.clear();
 }

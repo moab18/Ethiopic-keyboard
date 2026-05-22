@@ -99,6 +99,7 @@ private:
 
 class CEthiopicTextService : public ITfTextInputProcessorEx,
                               public ITfKeyEventSink,
+                              public ITfTextEditSink,
                               public ITfThreadMgrEventSink,
                               public ITfCompositionSink,
                               public ITfDisplayAttributeProvider {
@@ -124,6 +125,8 @@ public:
     STDMETHODIMP OnKeyUp(ITfContext *pic, WPARAM wParam, LPARAM lParam, BOOL *pfEaten) override;
     STDMETHODIMP OnPreservedKey(ITfContext *pic, REFGUID rguid, BOOL *pfEaten) override;
 
+    STDMETHODIMP OnEndEdit(ITfContext *pic, TfEditCookie ecReadOnly, ITfEditRecord *pEditRecord) override;
+
     STDMETHODIMP OnInitDocumentMgr(ITfDocumentMgr *pDim) override;
     STDMETHODIMP OnUninitDocumentMgr(ITfDocumentMgr *pDim) override;
     STDMETHODIMP OnSetFocus(ITfDocumentMgr *pDimFocus, ITfDocumentMgr *pDimPrevFocus) override;
@@ -137,6 +140,7 @@ public:
 
     TfClientId GetClientId() const { return m_tfClientId; }
     ITfThreadMgr *GetThreadMgr() const { return m_pThreadMgr; }
+    bool HasComposition() const { return m_pComposition != nullptr; }
     void StartComposition(TfEditCookie ec, ITfContext *pContext, const std::string &text);
     void UpdateComposition(TfEditCookie ec, const std::string &text);
     void EndComposition(TfEditCookie ec, ITfContext *pContext);
@@ -151,10 +155,13 @@ public:
 private:
     BOOL _InitKeyEventSink();
     void _UninitKeyEventSink();
+    BOOL _InitTextEditSink(ITfDocumentMgr *pDocMgr);
+    void _UninitTextEditSink();
     BOOL _InitThreadMgrEventSink();
     void _UninitThreadMgrEventSink();
     BOOL _InitDisplayAttributeGuidAtom();
     BOOL _SetKeyboardOpen(BOOL fOpen);
+    BOOL _IsKeyboardOpen();
 
 public:
     TfGuidAtom GetInputAttribute() const { return m_gaDisplayAttributeInput; }
@@ -165,6 +172,8 @@ private:
     DWORD m_dwActivateFlags;
     bool m_activated;
     DWORD m_dwThreadMgrCookie;
+    DWORD m_dwTextEditCookie;
+    ITfContext *m_pTextEditSinkContext;
 
     ITfThreadMgr *m_pThreadMgr;
     ITfComposition *m_pComposition;

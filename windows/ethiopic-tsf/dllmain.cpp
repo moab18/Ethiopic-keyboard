@@ -93,47 +93,91 @@ static const char *log_path()
     return path;
 }
 
+static HANDLE get_log_mutex()
+{
+    static HANDLE hMutex = CreateMutexA(NULL, FALSE, "Local\\EthiopicTSF_LogMutex");
+    return hMutex;
+}
+
+static void log_lock()
+{
+    HANDLE h = get_log_mutex();
+    if (h) WaitForSingleObject(h, 5000);
+}
+
+static void log_unlock()
+{
+    HANDLE h = get_log_mutex();
+    if (h) ReleaseMutex(h);
+}
+
 static void reg_log(const char *msg)
 {
-    static bool first = true;
-    const char *mode = first ? "w" : "a";
-    first = false;
-
     SYSTEMTIME st;
     GetLocalTime(&st);
+    DWORD pid = GetCurrentProcessId();
+    DWORD tid = GetCurrentThreadId();
+    char buf[512];
+    int n = snprintf(buf, sizeof(buf), "[EthiopicTSF] %02d:%02d:%02d.%03d [pid=%lu tid=%lu] %s\n",
+                     st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
+                     pid, tid, msg);
+    if (n > 0) OutputDebugStringA(buf);
 
-    FILE *f = fopen(log_path(), mode);
+    log_lock();
+    FILE *f = fopen(log_path(), "a");
     if (f) {
-        fprintf(f, "%02d:%02d:%02d.%03d  %s\n",
-                st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, msg);
+        fprintf(f, "%02d:%02d:%02d.%03d [%lu %lu] %s\n",
+                st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
+                pid, tid, msg);
         fclose(f);
     }
+    log_unlock();
 }
 
 static void reg_log_hr(const char *msg, HRESULT hr)
 {
     SYSTEMTIME st;
     GetLocalTime(&st);
+    DWORD pid = GetCurrentProcessId();
+    DWORD tid = GetCurrentThreadId();
+    char buf[512];
+    int n = snprintf(buf, sizeof(buf), "[EthiopicTSF] %02d:%02d:%02d.%03d [pid=%lu tid=%lu] %s (HRESULT=0x%08lX)\n",
+                     st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
+                     pid, tid, msg, (unsigned long)hr);
+    if (n > 0) OutputDebugStringA(buf);
+
+    log_lock();
     FILE *f = fopen(log_path(), "a");
     if (f) {
-        fprintf(f, "%02d:%02d:%02d.%03d  %s (HRESULT=0x%08lX)\n",
+        fprintf(f, "%02d:%02d:%02d.%03d [%lu %lu] %s (HRESULT=0x%08lX)\n",
                 st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
-                msg, (unsigned long)hr);
+                pid, tid, msg, (unsigned long)hr);
         fclose(f);
     }
+    log_unlock();
 }
 
 static void reg_log_reg(const char *msg, LONG result)
 {
     SYSTEMTIME st;
     GetLocalTime(&st);
+    DWORD pid = GetCurrentProcessId();
+    DWORD tid = GetCurrentThreadId();
+    char buf[512];
+    int n = snprintf(buf, sizeof(buf), "[EthiopicTSF] %02d:%02d:%02d.%03d [pid=%lu tid=%lu] %s (RegError=%ld)\n",
+                     st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
+                     pid, tid, msg, (long)result);
+    if (n > 0) OutputDebugStringA(buf);
+
+    log_lock();
     FILE *f = fopen(log_path(), "a");
     if (f) {
-        fprintf(f, "%02d:%02d:%02d.%03d  %s (RegError=%ld)\n",
+        fprintf(f, "%02d:%02d:%02d.%03d [%lu %lu] %s (RegError=%ld)\n",
                 st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
-                msg, (long)result);
+                pid, tid, msg, (long)result);
         fclose(f);
     }
+    log_unlock();
 }
 
 static const WCHAR TEXTSERVICE_DESC[] = L"Ethiopic (SERA)";
@@ -163,6 +207,7 @@ DEFINE_GUID(GUID_TFCAT_DISPLAYATTRIBUTEPROVIDER,
 static const GUID SupportCategories[] = {
     GUID_TFCAT_TIP_KEYBOARD,
     GUID_TFCAT_DISPLAYATTRIBUTEPROVIDER,
+    GUID_TFCAT_TIPCAP_COMLESS,
     GUID_TFCAT_TIPCAP_UIELEMENTENABLED,
     GUID_TFCAT_TIPCAP_SECUREMODE,
     GUID_TFCAT_TIPCAP_INPUTMODECOMPARTMENT,
@@ -393,8 +438,14 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID pvReserved)
 
     switch (dwReason) {
     case DLL_PROCESS_ATTACH:
+        DisableThreadLibraryCalls(hInstance);
         g_hModule = hInstance;
-        reg_log("DllMain: DLL_PROCESS_ATTACH");
+        reg_log("DllMain: DLL_PROCESS_ATTACH  BUILD=" __DATE__ " " __TIME__);
+        {
+            char path[MAX_PATH];
+            GetModuleFileNameA(hInstance, path, sizeof(path));
+            reg_log(path);
+        }
         break;
 
     case DLL_PROCESS_DETACH:
