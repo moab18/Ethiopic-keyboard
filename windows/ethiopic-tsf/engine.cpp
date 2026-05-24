@@ -79,6 +79,12 @@ static const GUID GUID_DisplayAttributeInput = {
     {0xA1, 0xE3, 0x2D, 0x6F, 0x8C, 0x4B, 0x5A, 0x9E}
 };
 
+// GUID for the TSF candidate list UI element
+static const GUID GUID_EthiopicCandidateWindow = {
+    0xED70ECDE, 0xC8AA, 0x4170,
+    {0x96, 0xCC, 0x00, 0x90, 0xDE, 0xA8, 0xAE, 0xC2}
+};
+
 #ifdef __MINGW32__
 template<> const GUID &__mingw_uuidof<ITfTextInputProcessorEx>() { return IID_ITfTextInputProcessorEx; }
 template<> const GUID &__mingw_uuidof<ITfDisplayAttributeProvider>() { return IID_ITfDisplayAttributeProvider; }
@@ -158,6 +164,264 @@ static std::wstring utf8_to_wstring(const std::string &s)
     MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), &w[0], wlen);
     return w;
 }
+
+// ---- Candidate Popup Window ----
+
+static const wchar_t *kPopupWndClass = L"EthiopicCandidatePopupWnd";
+static HINSTANCE g_popupHInstance = nullptr;
+static bool g_popupClassRegistered = false;
+
+static HFONT g_popupFont = nullptr;
+static HFONT _GetPopupFont()
+{
+    if (!g_popupFont) {
+        NONCLIENTMETRICSW ncm = {sizeof(ncm)};
+        if (SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0))
+            g_popupFont = CreateFontIndirectW(&ncm.lfMessageFont);
+        if (!g_popupFont)
+            g_popupFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    }
+    return g_popupFont;
+}
+
+void CEthiopicTextService::_EnsurePopupWindowClass(HINSTANCE hInstance)
+{
+    if (g_popupClassRegistered) return;
+    g_popupHInstance = hInstance;
+
+    WNDCLASSEXW wc = {sizeof(wc)};
+    wc.style = CS_SAVEBITS | CS_DROPSHADOW;
+    wc.lpfnWndProc = _PopupWndProc;
+    wc.hInstance = hInstance;
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)(COLOR_INFOBK + 1);
+    wc.lpszClassName = kPopupWndClass;
+    RegisterClassExW(&wc);
+    g_popupClassRegistered = true;
+}
+
+void CEthiopicTextService::_CreatePopupWindow()
+{
+    if (m_hwndCandidatePopup) return;
+
+    _EnsurePopupWindowClass((HINSTANCE)DllModuleHandle());
+
+    m_hwndCandidatePopup = CreateWindowExW(
+        WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
+        kPopupWndClass, L"",
+        WS_POPUP | WS_DISABLED,
+        0, 0, 10, 10,
+        nullptr, nullptr, g_popupHInstance, nullptr);
+
+    if (m_hwndCandidatePopup) {
+        SetWindowLongPtrW(m_hwndCandidatePopup, GWLP_USERDATA, (LONG_PTR)this);
+    }
+}
+
+LRESULT CALLBACK CEthiopicTextService::_PopupWndProc(HWND hwnd, UINT msg,
+                                                      WPARAM wp, LPARAM lp)
+{
+    CEthiopicTextService *pThis =
+        (CEthiopicTextService *)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+
+    switch (msg) {
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hwnd, &ps);
+        if (!pThis) { EndPaint(hwnd, &ps); break; }
+
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+
+        // Background
+        HBRUSH hBrBg = GetSysColorBrush(COLOR_INFOBK);
+        FillRect(hdc, &rc, hBrBg);
+
+        // Border
+        HPEN hPen = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_INFOTEXT));
+        HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
+        HBRUSH hOldBr = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
+        Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
+        SelectObject(hdc, hOldBr);
+        SelectObject(hdc, hOldPen);
+        DeleteObject(hPen);
+
+        // Candidate text
+        HFONT hFont = _GetPopupFont();
+        HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+        SetBkMode(hdc, TRANSPARENT);
+        SetTextColor(hdc, GetSysColor(COLOR_INFOTEXT));
+
+        auto &cands = pThis->m_candidates;
+        int sel = pThis->m_candidateIndex;
+        int lineH = pThis->m_candidatePopupLineHeight;
+        if (lineH < 16) lineH = 20;
+
+        int y = 4;
+        for (int i = 0; i < (int)cands.size(); i++) {
+            RECT itemRc = {4, y, rc.right - 4, y + lineH};
+
+            if (i == sel) {
+                // Selected item background
+                HBRUSH hBrSel = GetSysColorBrush(COLOR_HIGHLIGHT);
+                RECT selRc = {1, y, rc.right - 1, y + lineH};
+                FillRect(hdc, &selRc, hBrSel);
+                SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+            } else {
+                SetTextColor(hdc, GetSysColor(COLOR_INFOTEXT));
+            }
+
+            // Build display text: index + candidate string
+            wchar_t buf[256];
+            std::wstring wcand = utf8_to_wstring(cands[i]);
+            _snwprintf(buf, 256, L"%d. %s", i + 1, wcand.c_str());
+
+            DrawTextW(hdc, buf, -1, &itemRc,
+                      DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            y += lineH;
+        }
+
+        SelectObject(hdc, hOldFont);
+        EndPaint(hwnd, &ps);
+        break;
+    }
+    case WM_DESTROY:
+        break;
+    default:
+        return DefWindowProcW(hwnd, msg, wp, lp);
+    }
+    return 0;
+}
+
+void CEthiopicTextService::ShowCandidatePopup(ITfContext *pContext)
+{
+    if (m_candidates.empty()) {
+        HideCandidatePopup();
+        return;
+    }
+
+    // Ensure window exists
+    if (!m_hwndCandidatePopup) {
+        _CreatePopupWindow();
+    }
+    if (!m_hwndCandidatePopup) return;
+
+    // Calculate window size based on content
+    HDC hdc = GetDC(m_hwndCandidatePopup);
+    HFONT hFont = _GetPopupFont();
+    HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+
+    int lineH = m_candidatePopupLineHeight;
+    if (lineH < 16) lineH = 20;
+    // Measure text for minimum width
+    TEXTMETRICW tm = {};
+    GetTextMetricsW(hdc, &tm);
+    int maxW = 80; // minimum
+    for (auto &c : m_candidates) {
+        std::wstring wc = utf8_to_wstring(c);
+        SIZE sz = {};
+        GetTextExtentPoint32W(hdc, wc.c_str(), (int)wc.size(), &sz);
+        // Account for "N. " prefix (~20px)
+        int itemW = sz.cx + tm.tmAveCharWidth * 4 + 8;
+        if (itemW > maxW) maxW = itemW;
+    }
+    SelectObject(hdc, hOldFont);
+    ReleaseDC(m_hwndCandidatePopup, hdc);
+
+    int numCands = (int)m_candidates.size();
+    int winW = maxW + 2;
+    int winH = numCands * lineH + 8;
+
+    // Default position (will be refined by edit session)
+    POINT pt = m_candidatePopupPos;
+    if (pt.x == 0 && pt.y == 0) {
+        // No known position yet — use a rough estimate
+        HWND hFg = GetForegroundWindow();
+        if (hFg) {
+            RECT fgRc;
+            GetWindowRect(hFg, &fgRc);
+            pt.x = fgRc.left + 100;
+            pt.y = fgRc.top + 200;
+        }
+    }
+
+    // Ensure within monitor work area
+    HMONITOR hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi = {sizeof(mi)};
+    if (GetMonitorInfoW(hMon, &mi)) {
+        if (pt.y + winH > mi.rcWork.bottom)
+            pt.y = mi.rcWork.top + 100;
+        if (pt.x + winW > mi.rcWork.right)
+            pt.x = mi.rcWork.right - winW - 10;
+        if (pt.x < mi.rcWork.left)
+            pt.x = mi.rcWork.left + 10;
+    }
+
+    SetWindowPos(m_hwndCandidatePopup, HWND_TOPMOST,
+                 pt.x, pt.y, winW, winH,
+                 SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    m_candidatePopupPos = pt;
+
+    // Send WM_NCACTIVATE FALSE to prevent the window from looking "active"
+    SendMessageW(m_hwndCandidatePopup, WM_NCACTIVATE, FALSE, 0);
+
+    // Queue an edit session to get the accurate cursor position
+    if (pContext && m_pThreadMgr) {
+        CEthiopicEditSession *posSession = new CEthiopicEditSession(
+            this, "", "", true);
+        HRESULT hr = 0;
+        pContext->RequestEditSession(m_tfClientId, posSession,
+            TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+        posSession->Release();
+    }
+}
+
+void CEthiopicTextService::HideCandidatePopup()
+{
+    if (m_hwndCandidatePopup) {
+        ShowWindow(m_hwndCandidatePopup, SW_HIDE);
+        DestroyWindow(m_hwndCandidatePopup);
+        m_hwndCandidatePopup = nullptr;
+    }
+    m_candidatePopupPos.x = 0;
+    m_candidatePopupPos.y = 0;
+}
+
+void CEthiopicTextService::RefreshCandidatePopup()
+{
+    if (m_hwndCandidatePopup && IsWindowVisible(m_hwndCandidatePopup)) {
+        // Recalculate size and position
+        HDC hdc = GetDC(m_hwndCandidatePopup);
+        HFONT hFont = _GetPopupFont();
+        HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+        TEXTMETRICW tm = {};
+        GetTextMetricsW(hdc, &tm);
+        int maxW = 80;
+        for (auto &c : m_candidates) {
+            std::wstring wc = utf8_to_wstring(c);
+            SIZE sz = {};
+            GetTextExtentPoint32W(hdc, wc.c_str(), (int)wc.size(), &sz);
+            int itemW = sz.cx + tm.tmAveCharWidth * 4 + 8;
+            if (itemW > maxW) maxW = itemW;
+        }
+        SelectObject(hdc, hOldFont);
+        ReleaseDC(m_hwndCandidatePopup, hdc);
+
+        int lineH = m_candidatePopupLineHeight;
+        if (lineH < 16) lineH = 20;
+        int numCands = (int)m_candidates.size();
+        if (numCands < 1) { HideCandidatePopup(); return; }
+        int winW = maxW + 2;
+        int winH = numCands * lineH + 8;
+
+        SetWindowPos(m_hwndCandidatePopup, nullptr,
+                     0, 0, winW, winH,
+                     SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+        InvalidateRect(m_hwndCandidatePopup, nullptr, TRUE);
+    }
+}
+
+// ---- End Candidate Popup Window ----
 
 class CEthiopicDisplayAttributeInfo : public ITfDisplayAttributeInfo {
 public:
@@ -288,11 +552,13 @@ private:
 
 CEthiopicEditSession::CEthiopicEditSession(CEthiopicTextService *pService,
                                            const std::string &commit_text,
-                                           const std::string &preedit_text)
+                                           const std::string &preedit_text,
+                                           bool position_popup)
     : m_cRef(1)
     , m_pService(pService)
     , m_commitText(commit_text)
     , m_preeditText(preedit_text)
+    , m_positionPopup(position_popup)
 {
 }
 
@@ -323,6 +589,69 @@ STDMETHODIMP_(ULONG) CEthiopicEditSession::Release()
 STDMETHODIMP CEthiopicEditSession::DoEditSession(TfEditCookie ec)
 {
     if (!m_pService) return E_FAIL;
+
+    // Position candidate popup if needed
+    if (m_positionPopup && m_pService->IsCandidatePopupVisible()) {
+        ITfContext *pContext = nullptr;
+        ITfDocumentMgr *pDocMgr = nullptr;
+        if (m_pService->GetThreadMgr() &&
+            SUCCEEDED(m_pService->GetThreadMgr()->GetFocus(&pDocMgr)) && pDocMgr) {
+            pDocMgr->GetTop(&pContext);
+            pDocMgr->Release();
+        }
+        if (pContext) {
+            ITfContextView *pView = nullptr;
+            if (SUCCEEDED(pContext->GetActiveView(&pView)) && pView) {
+                TF_SELECTION sel = {};
+                ULONG fetched = 0;
+                if (SUCCEEDED(pContext->GetSelection(ec, TF_DEFAULT_SELECTION,
+                        1, &sel, &fetched)) && fetched > 0 && sel.range) {
+                    RECT textRect = {};
+                    BOOL clipped = FALSE;
+                    if (SUCCEEDED(pView->GetTextExt(ec, sel.range, &textRect, &clipped))) {
+                        m_pService->m_candidatePopupPos.x = textRect.left;
+                        m_pService->m_candidatePopupPos.y = textRect.bottom;
+                        m_pService->m_candidatePopupLineHeight = textRect.bottom - textRect.top;
+                        if (m_pService->m_candidatePopupLineHeight < 16)
+                            m_pService->m_candidatePopupLineHeight = 20;
+
+                        // Reposition the popup window
+                        if (m_pService->m_hwndCandidatePopup) {
+                            RECT wr = {};
+                            GetWindowRect(m_pService->m_hwndCandidatePopup, &wr);
+                            int w = wr.right - wr.left;
+                            int h = wr.bottom - wr.top;
+                            POINT pt = {textRect.left, textRect.bottom};
+                            // Check if there's room below; if not, flip above
+                            HMONITOR hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+                            MONITORINFO mi = {sizeof(mi)};
+                            if (GetMonitorInfoW(hMon, &mi)) {
+                                if (pt.y + h > mi.rcWork.bottom)
+                                    pt.y = textRect.top - h;
+                                if (pt.x + w > mi.rcWork.right)
+                                    pt.x = mi.rcWork.right - w;
+                                if (pt.x < mi.rcWork.left)
+                                    pt.x = mi.rcWork.left;
+                            }
+                            SetWindowPos(m_pService->m_hwndCandidatePopup, HWND_TOPMOST,
+                                         pt.x, pt.y, 0, 0,
+                                         SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                            m_pService->m_candidatePopupPos.x = pt.x;
+                            m_pService->m_candidatePopupPos.y = pt.y;
+                        }
+                    }
+                    sel.range->Release();
+                }
+                pView->Release();
+            }
+            pContext->Release();
+        }
+    }
+
+    // Position-only session: just reposition the popup, don't touch text/composition
+    if (m_positionPopup && m_commitText.empty() && m_preeditText.empty()) {
+        return S_OK;
+    }
 
     char b[256];
 
@@ -397,6 +726,194 @@ STDMETHODIMP CEthiopicEditSession::DoEditSession(TfEditCookie ec)
     return S_OK;
 }
 
+// --- CEthiopicCandidateListUIElement ---
+
+CEthiopicCandidateListUIElement::CEthiopicCandidateListUIElement(
+    CEthiopicTextService *pService, ITfContext *pContext)
+    : m_cRef(1), m_pService(pService), m_pContext(pContext), m_shown(false)
+{
+    if (m_pContext) m_pContext->AddRef();
+}
+
+void CEthiopicCandidateListUIElement::UpdateContext(ITfContext *pContext)
+{
+    if (m_pContext) m_pContext->Release();
+    m_pContext = pContext;
+    if (m_pContext) m_pContext->AddRef();
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::QueryInterface(REFIID riid,
+                                                              void **ppv)
+{
+    if (!ppv) return E_POINTER;
+    *ppv = nullptr;
+
+    if (IsEqualIID(riid, IID_IUnknown) ||
+        IsEqualIID(riid, IID_ITfUIElement) ||
+        IsEqualIID(riid, IID_ITfCandidateListUIElement) ||
+        IsEqualIID(riid, IID_ITfCandidateListUIElementBehavior)) {
+        *ppv = static_cast<ITfCandidateListUIElementBehavior *>(this);
+        AddRef();
+        return S_OK;
+    }
+    return E_NOINTERFACE;
+}
+
+STDMETHODIMP_(ULONG) CEthiopicCandidateListUIElement::AddRef()
+{
+    return InterlockedIncrement(&m_cRef);
+}
+
+STDMETHODIMP_(ULONG) CEthiopicCandidateListUIElement::Release()
+{
+    LONG ref = InterlockedDecrement(&m_cRef);
+    if (ref == 0) {
+        if (m_pContext) m_pContext->Release();
+        delete this;
+    }
+    return ref;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetDescription(BSTR *pbstr)
+{
+    if (!pbstr) return E_INVALIDARG;
+    *pbstr = SysAllocString(L"Ethiopic Candidate");
+    return *pbstr ? S_OK : E_OUTOFMEMORY;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetGUID(GUID *pguid)
+{
+    if (!pguid) return E_INVALIDARG;
+    *pguid = GUID_EthiopicCandidateWindow;
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::Show(BOOL bShow)
+{
+    m_shown = (bShow != FALSE);
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::IsShown(BOOL *pbShow)
+{
+    if (!pbShow) return E_INVALIDARG;
+    *pbShow = m_shown ? TRUE : FALSE;
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetUpdatedFlags(DWORD *pdwFlags)
+{
+    if (!pdwFlags) return E_INVALIDARG;
+    *pdwFlags = TF_CLUIE_SELECTION | TF_CLUIE_COUNT |
+                TF_CLUIE_CURRENTPAGE | TF_CLUIE_PAGEINDEX;
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetDocumentMgr(
+    ITfDocumentMgr **ppdim)
+{
+    if (!ppdim) return E_INVALIDARG;
+    *ppdim = nullptr;
+    if (!m_pContext) return E_FAIL;
+    return m_pContext->GetDocumentMgr(ppdim);
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetCount(UINT *puCount)
+{
+    if (!puCount) return E_INVALIDARG;
+    *puCount = (UINT)m_pService->m_candidates.size();
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetSelection(UINT *puIndex)
+{
+    if (!puIndex) return E_INVALIDARG;
+    *puIndex = (UINT)m_pService->m_candidateIndex;
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetString(UINT uIndex, BSTR *pstr)
+{
+    if (!pstr) return E_INVALIDARG;
+    *pstr = nullptr;
+    auto &cands = m_pService->m_candidates;
+    if ((int)uIndex >= (int)cands.size()) return E_INVALIDARG;
+
+    std::string &utf8 = cands[uIndex];
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), (int)utf8.size(),
+                                    nullptr, 0);
+    if (wlen <= 0) return E_FAIL;
+    BSTR bstr = SysAllocStringLen(nullptr, wlen);
+    if (!bstr) return E_OUTOFMEMORY;
+    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), (int)utf8.size(), bstr, wlen);
+    *pstr = bstr;
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetPageIndex(
+    UINT *pIndex, UINT uSize, UINT *puPageCnt)
+{
+    if (!puPageCnt) return E_INVALIDARG;
+    *puPageCnt = 1;
+    if (pIndex && uSize > 0) pIndex[0] = 0;
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::SetPageIndex(
+    UINT *, UINT)
+{
+    return E_NOTIMPL;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::GetCurrentPage(UINT *puPage)
+{
+    if (!puPage) return E_INVALIDARG;
+    *puPage = 0;
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::SetSelection(UINT nIndex)
+{
+    if ((int)nIndex >= (int)m_pService->m_candidates.size())
+        return E_INVALIDARG;
+    m_pService->m_candidateIndex = (int)nIndex;
+    m_pService->_UpdateCandidateUI();
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::Finalize()
+{
+    std::string commitText = m_pService->FlushCandidate(
+        m_pService->m_candidateIndex);
+    m_pService->ShowSuggestions();
+
+    // Update the TSF popup with new candidates (or dismiss if empty)
+    if (!m_pService->m_candidates.empty()) {
+        m_pService->_UpdateCandidateUI();
+    } else {
+        m_pService->_EndCandidateUI();
+    }
+
+    // Dispatch edit session to commit the chosen candidate text
+    if (!commitText.empty() && m_pContext) {
+        CEthiopicEditSession *session = new CEthiopicEditSession(
+            m_pService, commitText, "", false);
+        HRESULT hr = S_OK;
+        m_pContext->RequestEditSession(m_pService->GetClientId(), session,
+            TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+        session->Release();
+    }
+    return S_OK;
+}
+
+STDMETHODIMP CEthiopicCandidateListUIElement::Abort()
+{
+    m_pService->HideSuggestions();
+    return S_OK;
+}
+
+// --- CEthiopicTextService ---
+
 CEthiopicTextService::CEthiopicTextService()
     : m_cRef(1)
     , m_tfClientId(0)
@@ -447,6 +964,40 @@ CEthiopicTextService::CEthiopicTextService()
                          "CEthiopicTextService: loaded %d names", count);
                 elog(b);
                 m_core.load_trie(m_mapping.states[0].trie);
+            }
+
+            // Load wordlist.json for candidate suggestions
+            std::string wordlist_path = data_path;
+            size_t wp = wordlist_path.rfind("am-sera.json");
+            if (wp != std::string::npos)
+                wordlist_path.replace(wp, 13, "wordlist.json");
+            try {
+                m_wordlist.load(wordlist_path);
+                char b[64];
+                snprintf(b, sizeof(b),
+                         "CEthiopicTextService: loaded %zu words from wordlist",
+                         m_wordlist.size());
+                elog(b);
+            } catch (const std::exception &e) {
+                char b[128];
+                snprintf(b, sizeof(b),
+                         "CEthiopicTextService: wordlist load error: %s", e.what());
+                elog(b);
+            }
+
+            // Load bigrams.json for next-word prediction
+            std::string bigrams_path = data_path;
+            size_t bp = bigrams_path.rfind("am-sera.json");
+            if (bp != std::string::npos)
+                bigrams_path.replace(bp, 13, "bigrams.json");
+            try {
+                m_wordlist.load_bigrams(bigrams_path);
+                elog("CEthiopicTextService: loaded bigrams");
+            } catch (const std::exception &e) {
+                char b[128];
+                snprintf(b, sizeof(b),
+                         "CEthiopicTextService: bigrams load error: %s", e.what());
+                elog(b);
             }
         }
     } catch (...) {
@@ -746,6 +1297,11 @@ STDMETHODIMP CEthiopicTextService::Deactivate()
     m_gaDisplayAttributeInput = TF_INVALID_GUIDATOM;
     m_currentPreedit.clear();
     m_core.reset();
+    _EndCandidateUI();
+    HideCandidatePopup();
+    HideSuggestions();
+    m_wordBuffer.clear();
+    m_lastWord.clear();
     return S_OK;
 }
 
@@ -755,6 +1311,11 @@ STDMETHODIMP CEthiopicTextService::OnSetFocus(BOOL fForeground)
     snprintf(b, sizeof(b), "[EthiopicTSF] KeyEventSink::OnSetFocus fg=%d\n", (int)fForeground);
     OutputDebugStringA(b);
     elog(b);
+
+    if (!fForeground) {
+        HideCandidatePopup();
+        HideSuggestions();
+    }
     return S_OK;
 }
 
@@ -807,6 +1368,36 @@ STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM wParam,
         return S_OK;
     }
 
+    // Eat candidate navigation keys when popup is visible
+    if (IsCandidatePopupVisible()) {
+        if (wParam == VK_TAB || wParam == VK_RETURN || wParam == VK_ESCAPE ||
+            wParam == VK_UP || wParam == VK_DOWN ||
+            wParam == VK_LEFT || wParam == VK_RIGHT) {
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+        if (wParam >= '1' && wParam <= '8') {
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+    }
+
+    // Eat candidate navigation keys when suggestions are visible (inline mode).
+    if (!m_candidates.empty() && !IsCandidatePopupVisible()) {
+        if ((wParam == VK_TAB || wParam == VK_RETURN || wParam == VK_ESCAPE)) {
+            if (IsCandidateUIActive()) {
+                *pfEaten = FALSE;
+            } else {
+                *pfEaten = TRUE;
+            }
+            return S_OK;
+        }
+        if (wParam >= '1' && wParam <= '8') {
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+    }
+
     *pfEaten = is_key_eaten(wParam, lParam) ? TRUE : FALSE;
     return S_OK;
 }
@@ -839,11 +1430,12 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
             m_core.toggle_passthrough();
             m_core.reset();
             m_currentPreedit.clear();
-
+            HideCandidatePopup();
+            HideSuggestions();
             if (m_pComposition) {
                 CEthiopicEditSession *session = new CEthiopicEditSession(
-                    this, "", "");
-                HRESULT hr = S_OK;
+                    this, "", "", false);
+                HRESULT hr = 0;
                 pContext->RequestEditSession(m_tfClientId, session,
                     TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
                 session->Release();
@@ -858,6 +1450,29 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
             *pfEaten = TRUE;
             return S_OK;
         }
+
+        // Ctrl+Space: finish composition and show suggestions
+        if ((wParam == VK_SPACE && ctrlHeld) || (ctrlKey && (GetAsyncKeyState(VK_SPACE) & 0x8000))) {
+            elog("OnKeyDown: Ctrl+Space -> show suggestions");
+            m_core.finish_composition();
+            std::string prod = m_core.flush();
+            if (!prod.empty()) _TrackWord(prod);
+            ShowSuggestions();
+            std::string preedit;
+            if (!m_candidates.empty()) {
+                ShowCandidatePopup(pContext);
+                _BeginCandidateUI(pContext);
+                preedit = "";
+            }
+            CEthiopicEditSession *session = new CEthiopicEditSession(
+                this, prod, preedit, IsCandidatePopupVisible());
+            HRESULT hr = 0;
+            pContext->RequestEditSession(m_tfClientId, session,
+                TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+            session->Release();
+            *pfEaten = TRUE;
+            return S_OK;
+        }
     }
 
     if (m_core.passthrough()) {
@@ -865,14 +1480,171 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
         return S_OK;
     }
 
+    // Handle candidate suggestion navigation
+    if (!m_candidates.empty()) {
+        bool popup = IsCandidatePopupVisible();
+        {
+            char b[80];
+            snprintf(b, sizeof(b), "OnKeyDown: candidate mode wParam=0x%x n=%zu idx=%d popup=%d",
+                     (int)wParam, m_candidates.size(), m_candidateIndex, popup ? 1 : 0);
+            elog(b);
+        }
+
+        // Arrow Down: next candidate
+        if (wParam == VK_DOWN) {
+            m_candidateIndex = (m_candidateIndex + 1) % (int)m_candidates.size();
+            if (popup) {
+                RefreshCandidatePopup();
+            } else {
+                std::string preedit = _BuildCandidateDisplay();
+                CEthiopicEditSession *session = new CEthiopicEditSession(this, "", preedit, false);
+                HRESULT hr = 0;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            }
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+        // Arrow Up: previous candidate
+        if (wParam == VK_UP) {
+            m_candidateIndex = (m_candidateIndex - 1 + (int)m_candidates.size()) % (int)m_candidates.size();
+            if (popup) {
+                RefreshCandidatePopup();
+            } else {
+                std::string preedit = _BuildCandidateDisplay();
+                CEthiopicEditSession *session = new CEthiopicEditSession(this, "", preedit, false);
+                HRESULT hr = 0;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            }
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+
+        // Tab: cycle through candidates
+        if (wParam == VK_TAB) {
+            if (IsCandidateUIActive() && !popup) {
+                elog("OnKeyDown: candidate TAB -> let TSF handle");
+                *pfEaten = FALSE;
+                return S_OK;
+            }
+            m_candidateIndex = (m_candidateIndex + 1) % (int)m_candidates.size();
+            if (popup) {
+                RefreshCandidatePopup();
+            }
+            { char b[64]; snprintf(b, sizeof(b), "OnKeyDown: candidate TAB -> idx=%d", m_candidateIndex); elog(b); }
+            if (!popup) {
+                std::string preedit = _BuildCandidateDisplay();
+                CEthiopicEditSession *session = new CEthiopicEditSession(this, "", preedit, false);
+                HRESULT hr = 0;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            }
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+        // Return/Enter: accept selected candidate
+        if (wParam == VK_RETURN) {
+            if (IsCandidateUIActive() && !popup) {
+                elog("OnKeyDown: candidate RETURN -> let TSF handle");
+                *pfEaten = FALSE;
+                return S_OK;
+            }
+            { char b[64]; snprintf(b, sizeof(b), "OnKeyDown: RETURN -> AcceptCandidate(%d)", m_candidateIndex); elog(b); }
+            AcceptCandidate(m_candidateIndex);
+            std::string prod = m_core.flush();
+            if (!prod.empty()) _TrackWord(prod);
+            ShowSuggestions();
+            if (!m_candidates.empty()) {
+                if (popup) {
+                    ShowCandidatePopup(pContext);
+                }
+                std::string preedit = popup ? "" : _BuildCandidateDisplay();
+                CEthiopicEditSession *session = new CEthiopicEditSession(
+                    this, prod, preedit, popup);
+                HRESULT hr = 0;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            } else {
+                HideCandidatePopup();
+                CEthiopicEditSession *session = new CEthiopicEditSession(
+                    this, prod, "", false);
+                HRESULT hr = 0;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            }
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+        if (wParam >= '1' && wParam <= '8') {
+            int idx = wParam - '1';
+            { char b[64]; snprintf(b, sizeof(b), "OnKeyDown: DIGIT %d -> AcceptCandidate(%d)", idx + 1, idx); elog(b); }
+            AcceptCandidate(idx);
+            std::string prod = m_core.flush();
+            if (!prod.empty()) _TrackWord(prod);
+            ShowSuggestions();
+            if (!m_candidates.empty()) {
+                if (popup) {
+                    ShowCandidatePopup(pContext);
+                }
+                std::string preedit = popup ? "" : _BuildCandidateDisplay();
+                _BeginCandidateUI(pContext);
+                CEthiopicEditSession *session = new CEthiopicEditSession(
+                    this, prod, preedit, popup);
+                HRESULT hr = 0;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            } else {
+                HideCandidatePopup();
+                _EndCandidateUI();
+                CEthiopicEditSession *session = new CEthiopicEditSession(
+                    this, prod, "", false);
+                HRESULT hr = 0;
+                pContext->RequestEditSession(m_tfClientId, session,
+                    TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+                session->Release();
+            }
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+        if (wParam == VK_ESCAPE) {
+            elog("OnKeyDown: candidate ESCAPE -> dismiss");
+            _EndCandidateUI();
+            HideCandidatePopup();
+            HideSuggestions();
+            std::string preedit(m_core.composing());
+            CEthiopicEditSession *session = new CEthiopicEditSession(
+                this, "", preedit, false);
+            HRESULT hr = 0;
+            pContext->RequestEditSession(m_tfClientId, session,
+                TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+            session->Release();
+            *pfEaten = TRUE;
+            return S_OK;
+        }
+        // Any other key: dismiss candidates and fall through
+        { char b[64]; snprintf(b, sizeof(b), "OnKeyDown: other key 0x%x -> dismiss candidates", (int)wParam); elog(b); }
+        _EndCandidateUI();
+        HideCandidatePopup();
+        HideSuggestions();
+    }
+
     if (wParam == VK_BACK) {
         if (!m_currentPreedit.empty()) {
             elog("OnKeyDown: VK_BACK with preedit -> reset composition");
             m_core.reset();
             m_currentPreedit.clear();
+            HideCandidatePopup();
+            HideSuggestions();
             CEthiopicEditSession *session = new CEthiopicEditSession(
-                this, "", "");
-            HRESULT hr = S_OK;
+                this, "", "", false);
+            HRESULT hr = 0;
             pContext->RequestEditSession(m_tfClientId, session,
                 TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
             session->Release();
@@ -920,8 +1692,31 @@ STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
              produced.c_str(), composing.c_str());
     elog(b);
 
+    // Track committed word for suggestion context
+    if (!produced.empty()) {
+        _TrackWord(produced);
+    }
+
+    // Build preedit: show composing text OR show candidate popup, never both
+    std::string preedit;
+    if (!composing.empty()) {
+        // Still mid-composition - just show composing text, no candidates yet
+        preedit = composing;
+        HideCandidatePopup();
+        HideSuggestions();
+    } else {
+        // Composition complete - generate and show suggestions
+        ShowSuggestions();
+        if (!m_candidates.empty()) {
+            // Show popup window + optional TSF UI element
+            ShowCandidatePopup(pContext);
+            _BeginCandidateUI(pContext);
+            preedit = ""; // popup handles display
+        }
+    }
+
     CEthiopicEditSession *session = new CEthiopicEditSession(
-        this, produced, composing);
+        this, produced, preedit, IsCandidatePopupVisible());
     HRESULT hr = S_OK;
     pContext->RequestEditSession(m_tfClientId, session,
         TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
@@ -966,6 +1761,10 @@ STDMETHODIMP CEthiopicTextService::OnSetFocus(ITfDocumentMgr *pDimFocus,
                                                ITfDocumentMgr *)
 {
     _InitTextEditSink(pDimFocus);
+    if (!pDimFocus) {
+        HideCandidatePopup();
+        HideSuggestions();
+    }
     return S_OK;
 }
 
@@ -988,6 +1787,9 @@ STDMETHODIMP CEthiopicTextService::OnCompositionTerminated(TfEditCookie,
     }
     m_currentPreedit.clear();
     m_core.reset();
+    _EndCandidateUI();
+    HideCandidatePopup();
+    HideSuggestions();
     return S_OK;
 }
 
@@ -1154,4 +1956,226 @@ void CEthiopicTextService::ProcessKeyUtf8(const char *utf8)
 
     m_testCommitted += produced;
     m_testPreedit = composing;
+}
+
+bool CEthiopicTextService::_IsWordBoundary(const std::string &s)
+{
+    return s == " " || s == "\n" ||
+           s == "\xe1\x8d\xa1" ||  // ፡ (ethiopic wordspace)
+           s == "\xe1\x8d\xa2" ||  // ።
+           s == "\xe1\x8d\xa3" ||  // ፣
+           s == "\xe1\x8d\xa4" ||  // ፤
+           s == "\xe1\x8d\xa5" ||  // ፥
+           s == "\xe1\x8d\xa6";     // ፦
+}
+
+void CEthiopicTextService::_TrackWord(const std::string &text)
+{
+    if (_IsWordBoundary(text)) {
+        m_lastWord = m_wordBuffer;
+        m_wordBuffer.clear();
+    } else if (!text.empty() && text.back() == ' ') {
+        std::string word = text.substr(0, text.size() - 1);
+        if (!word.empty())
+            m_wordBuffer += word;
+        m_lastWord = m_wordBuffer;
+        m_wordBuffer.clear();
+    } else {
+        m_wordBuffer += text;
+    }
+}
+
+void CEthiopicTextService::ShowSuggestions()
+{
+    std::vector<std::string> results;
+
+    if (!m_wordBuffer.empty()) {
+        results = m_wordlist.suggest(m_wordBuffer, 8);
+    } else if (!m_lastWord.empty()) {
+        results = m_wordlist.suggest_next(m_lastWord, 8);
+    }
+
+    m_candidates = std::move(results);
+    m_candidateIndex = 0;
+
+    char b[128];
+    snprintf(b, sizeof(b), "ShowSuggestions: wb='%s' lw='%s' count=%zu",
+             m_wordBuffer.c_str(), m_lastWord.c_str(), m_candidates.size());
+    elog(b);
+}
+
+void CEthiopicTextService::HideSuggestions()
+{
+    m_candidates.clear();
+    m_candidateIndex = 0;
+    HideCandidatePopup();
+}
+
+HRESULT CEthiopicTextService::_BeginCandidateUI(ITfContext *pContext)
+{
+    if (m_candidates.empty()) {
+        _EndCandidateUI();
+        return S_FALSE;
+    }
+
+    if (!pContext) return E_POINTER;
+    if (!m_pThreadMgr) return E_FAIL;
+
+    ITfUIElementMgr *pUIMgr = nullptr;
+    HRESULT hr = m_pThreadMgr->QueryInterface(IID_ITfUIElementMgr,
+        (void **)&pUIMgr);
+    if (FAILED(hr) || !pUIMgr) {
+        elog("_BeginCandidateUI: QI for ITfUIElementMgr FAILED");
+        return hr;
+    }
+
+    // If element already exists, just update it
+    if (m_pCandidateUIElement && m_uiElementId != TF_INVALID_UIELEMENTID) {
+        elog("_BeginCandidateUI: element exists, updating");
+        pUIMgr->UpdateUIElement(m_uiElementId);
+        pUIMgr->Release();
+        return S_OK;
+    }
+
+    // Destroy old element if any (stale state)
+    _EndCandidateUI();
+
+    // Update context on existing element or create new one
+    if (m_pCandidateUIElement) {
+        m_pCandidateUIElement->UpdateContext(pContext);
+    } else {
+        m_pCandidateUIElement = new (std::nothrow)
+            CEthiopicCandidateListUIElement(this, pContext);
+        if (!m_pCandidateUIElement) {
+            pUIMgr->Release();
+            return E_OUTOFMEMORY;
+        }
+    }
+
+    BOOL show = FALSE;
+    DWORD newId = TF_INVALID_UIELEMENTID;
+    hr = pUIMgr->BeginUIElement(
+        static_cast<ITfCandidateListUIElementBehavior *>(m_pCandidateUIElement),
+        &show, &newId);
+    m_uiElementId = newId;
+    pUIMgr->Release();
+
+    if (FAILED(hr)) {
+        char b[80];
+        snprintf(b, sizeof(b),
+                 "_BeginCandidateUI: BeginUIElement FAILED hr=0x%08lX",
+                 (unsigned long)hr);
+        elog(b);
+        m_uiElementId = TF_INVALID_UIELEMENTID;
+        return hr;
+    }
+
+    m_pCandidateUIElement->Show(show);
+    char b[128];
+    snprintf(b, sizeof(b),
+             "_BeginCandidateUI: OK, elementId=%lu, count=%zu, show=%d",
+             (unsigned long)m_uiElementId, m_candidates.size(), (int)show);
+    elog(b);
+    return S_OK;
+}
+
+HRESULT CEthiopicTextService::_UpdateCandidateUI()
+{
+    if (m_uiElementId == TF_INVALID_UIELEMENTID)
+        return S_FALSE;
+    if (!m_pThreadMgr)
+        return E_FAIL;
+
+    ITfUIElementMgr *pUIMgr = nullptr;
+    HRESULT hr = m_pThreadMgr->QueryInterface(IID_ITfUIElementMgr,
+        (void **)&pUIMgr);
+    if (FAILED(hr) || !pUIMgr) return hr;
+
+    hr = pUIMgr->UpdateUIElement(m_uiElementId);
+    pUIMgr->Release();
+    elog("_UpdateCandidateUI: OK");
+    return hr;
+}
+
+void CEthiopicTextService::_EndCandidateUI()
+{
+    if (m_uiElementId != TF_INVALID_UIELEMENTID && m_pThreadMgr) {
+        ITfUIElementMgr *pUIMgr = nullptr;
+        HRESULT hr = m_pThreadMgr->QueryInterface(IID_ITfUIElementMgr,
+            (void **)&pUIMgr);
+        if (SUCCEEDED(hr) && pUIMgr) {
+            pUIMgr->EndUIElement(m_uiElementId);
+            pUIMgr->Release();
+            elog("_EndCandidateUI: OK");
+        }
+    }
+    m_uiElementId = TF_INVALID_UIELEMENTID;
+    if (m_pCandidateUIElement) {
+        m_pCandidateUIElement->Release();
+        m_pCandidateUIElement = nullptr;
+    }
+}
+
+void CEthiopicTextService::AcceptCandidate(int index)
+{
+    if (index < 0 || index >= (int)m_candidates.size()) return;
+
+    std::string chosen = m_candidates[index];
+    std::string prefix = m_wordBuffer;
+
+    if (!prefix.empty() &&
+        chosen.size() >= prefix.size() &&
+        chosen.compare(0, prefix.size(), prefix) == 0) {
+        std::string suffix = chosen.substr(prefix.size());
+        m_core.append_produced(suffix);
+    } else {
+        m_core.append_produced(chosen);
+    }
+    m_core.append_produced(" ");
+
+    m_wordBuffer.clear();
+    HideSuggestions();
+}
+
+std::string CEthiopicTextService::FlushCandidate(int index)
+{
+    if (index < 0 || index >= (int)m_candidates.size()) return "";
+
+    std::string chosen = m_candidates[index];
+    std::string prefix = m_wordBuffer;
+
+    if (!prefix.empty() &&
+        chosen.size() >= prefix.size() &&
+        chosen.compare(0, prefix.size(), prefix) == 0) {
+        std::string suffix = chosen.substr(prefix.size());
+        m_core.append_produced(suffix);
+    } else {
+        m_core.append_produced(chosen);
+    }
+    m_core.append_produced(" ");
+    m_wordBuffer.clear();
+
+    std::string produced = m_core.flush();
+    if (!produced.empty()) {
+        _TrackWord(produced);
+    }
+    return produced;
+}
+
+std::string CEthiopicTextService::_BuildCandidateDisplay() const
+{
+    if (m_candidates.empty()) return "";
+
+    std::string display = "[";
+    for (int i = 0; i < (int)m_candidates.size(); i++) {
+        if (i == m_candidateIndex) display += ">";
+        char num[8];
+        snprintf(num, sizeof(num), "%d:", i + 1);
+        display += num;
+        display += m_candidates[i];
+        if (i < (int)m_candidates.size() - 1)
+            display += " | ";
+    }
+    display += "]";
+    return display;
 }

@@ -85,7 +85,8 @@ class CEthiopicEditSession : public ITfEditSession {
 public:
     CEthiopicEditSession(CEthiopicTextService *pService,
                          const std::string &commit_text,
-                         const std::string &preedit_text);
+                         const std::string &preedit_text,
+                         bool position_popup = false);
 
     STDMETHODIMP QueryInterface(REFIID riid, void **ppv) override;
     STDMETHODIMP_(ULONG) AddRef() override;
@@ -97,6 +98,46 @@ private:
     CEthiopicTextService *m_pService;
     std::string m_commitText;
     std::string m_preeditText;
+    bool m_positionPopup;
+};
+
+class CEthiopicCandidateListUIElement : public ITfCandidateListUIElementBehavior {
+public:
+    CEthiopicCandidateListUIElement(CEthiopicTextService *pService,
+                                     ITfContext *pContext);
+
+    STDMETHODIMP QueryInterface(REFIID riid, void **ppv) override;
+    STDMETHODIMP_(ULONG) AddRef() override;
+    STDMETHODIMP_(ULONG) Release() override;
+
+    // ITfUIElement
+    STDMETHODIMP GetDescription(BSTR *pbstr) override;
+    STDMETHODIMP GetGUID(GUID *pguid) override;
+    STDMETHODIMP Show(BOOL bShow) override;
+    STDMETHODIMP IsShown(BOOL *pbShow) override;
+
+    // ITfCandidateListUIElement
+    STDMETHODIMP GetUpdatedFlags(DWORD *pdwFlags) override;
+    STDMETHODIMP GetDocumentMgr(ITfDocumentMgr **ppdim) override;
+    STDMETHODIMP GetCount(UINT *puCount) override;
+    STDMETHODIMP GetSelection(UINT *puIndex) override;
+    STDMETHODIMP GetString(UINT uIndex, BSTR *pstr) override;
+    STDMETHODIMP GetPageIndex(UINT *pIndex, UINT uSize, UINT *puPageCnt) override;
+    STDMETHODIMP SetPageIndex(UINT *pIndex, UINT uPageCnt) override;
+    STDMETHODIMP GetCurrentPage(UINT *puPage) override;
+
+    // ITfCandidateListUIElementBehavior
+    STDMETHODIMP SetSelection(UINT nIndex) override;
+    STDMETHODIMP Finalize() override;
+    STDMETHODIMP Abort() override;
+
+    void UpdateContext(ITfContext *pContext);
+
+private:
+    LONG m_cRef;
+    CEthiopicTextService *m_pService;
+    ITfContext *m_pContext;
+    bool m_shown;
 };
 
 class CEthiopicTextService : public ITfTextInputProcessorEx,
@@ -106,6 +147,8 @@ class CEthiopicTextService : public ITfTextInputProcessorEx,
                               public ITfCompositionSink,
                               public ITfDisplayAttributeProvider {
 public:
+    friend class CEthiopicCandidateListUIElement;
+    friend class CEthiopicEditSession;
     CEthiopicTextService();
     ~CEthiopicTextService();
 
@@ -159,6 +202,17 @@ public:
         if (m_core.passthrough() != on) m_core.toggle_passthrough();
     }
 
+    void ShowSuggestions();
+    void HideSuggestions();
+    void AcceptCandidate(int index);
+    std::string FlushCandidate(int index);
+    bool IsCandidateUIActive() const { return m_uiElementId != TF_INVALID_UIELEMENTID; }
+
+    void ShowCandidatePopup(ITfContext *pContext);
+    void HideCandidatePopup();
+    void RefreshCandidatePopup();
+    bool IsCandidatePopupVisible() const { return m_hwndCandidatePopup != nullptr; }
+
 private:
     BOOL _InitKeyEventSink();
     void _UninitKeyEventSink();
@@ -168,6 +222,17 @@ private:
     void _UninitThreadMgrEventSink();
     BOOL _InitDisplayAttributeGuidAtom();
     BOOL _IsKeyboardOpen();
+    void _TrackWord(const std::string &text);
+    static bool _IsWordBoundary(const std::string &s);
+    std::string _BuildCandidateDisplay() const;
+    HRESULT _BeginCandidateUI(ITfContext *pContext);
+    HRESULT _UpdateCandidateUI();
+    void _EndCandidateUI();
+
+    // HWND popup window
+    static void _EnsurePopupWindowClass(HINSTANCE hInstance);
+    void _CreatePopupWindow();
+    static LRESULT CALLBACK _PopupWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 
 public:
     TfGuidAtom GetInputAttribute() const { return m_gaDisplayAttributeInput; }
@@ -194,4 +259,15 @@ private:
     ethio::Engine m_core;
     ethio::WordList m_wordlist;
     ethio::MappingFile m_mapping;
+
+    std::string m_wordBuffer;
+    std::string m_lastWord;
+    std::vector<std::string> m_candidates;
+    int m_candidateIndex = 0;
+    CEthiopicCandidateListUIElement *m_pCandidateUIElement = nullptr;
+    DWORD m_uiElementId = TF_INVALID_UIELEMENTID;
+
+    HWND m_hwndCandidatePopup = nullptr;
+    POINT m_candidatePopupPos = {0, 0};
+    int m_candidatePopupLineHeight = 20;
 };
