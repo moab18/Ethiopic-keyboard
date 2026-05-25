@@ -3,7 +3,7 @@
 COM DLL that plugs the `libethio` SERA transliteration engine into the Windows Text Services Framework. Type Amharic (and other Ethiopic-script languages) phonetically using a standard US-English keyboard layout.
 
 ```
-ethiopic-tsf (COM DLL, ~650 lines C++)
+ethiopic-tsf (COM DLL)
   → libethio   (platform-independent C++ trie engine)
 ```
 
@@ -15,13 +15,13 @@ ethiopic-tsf (COM DLL, ~650 lines C++)
 | `engine.cpp` | Key event processing, SERA→Ethiopic conversion via `libethio`, composition/preeedit management, test-mode support |
 | `dllmain.cpp` | COM server entry points: `DllRegisterServer`, `DllUnregisterServer`, `DllGetClassObject`, `DllCanUnloadNow` |
 | `ethiopic-tsf.def` | DLL export definitions |
-| `CMakeLists.txt` | CMake build (MinGW / MSYS2 toolchain) |
+| `CMakeLists.txt` | CMake build (MSVC toolchain) |
 | `README.md` | This file |
 
 ## Requirements
 
 - **64-bit Windows 10 or later** (x64 only; 32-bit/x86 not supported)
-- **MSYS2** with mingw-w64-x86_64 toolchain (GCC 13+)
+- **Visual Studio 2022** with MSVC toolchain (or VS Build Tools)
 - **CMake** 3.16+
 - **C++17** compiler
 
@@ -29,38 +29,27 @@ System libraries linked: `ole32`, `oleaut32`, `advapi32`, `uuid` (all standard W
 
 ## Build
 
-Run from an **MSYS2 mingw64 shell** in the project root:
+Run from the project root:
 
 ```bash
 ./build-tsf.sh
 ```
 
 This script:
-1. Configures and builds the TSF DLL → `build-win/ethiopic-tsf/msys-ethiopic-tsf.dll`
+1. Configures and builds the TSF DLL with MSVC → `build-win/Release/ethiopic-tsf.dll`
 2. Builds and runs all test executables (mapping, engine, features, wordlist, TSF engine)
-
-### Build with install
-
-```bash
-./build-tsf.sh /c/Windows/System32
-```
-
-Copies the built DLL to the given directory after a successful build + test run.
 
 ### Manual build (step by step)
 
-```bash
-# Configure
-cmake -G "Unix Makefiles" \
-    -DCMAKE_CXX_COMPILER=/mingw64/bin/g++.exe \
-    -S windows/ethiopic-tsf \
-    -B build-win/ethiopic-tsf
+```cmd
+cmake -G "Visual Studio 17 2022" -A x64 ^
+    -S windows/ethiopic-tsf ^
+    -B build-win
 
-# Build
-make -C build-win/ethiopic-tsf -j$(nproc)
+cmake --build build-win --config Release
 ```
 
-Output: `build-win/ethiopic-tsf/msys-ethiopic-tsf.dll`
+Output: `build-win/Release/ethiopic-tsf.dll`
 
 ## Test
 
@@ -104,7 +93,7 @@ After registering the DLL (see Deploy below), switch to the IME in the language 
 
 ## Deploy
 
-Four options: MSI (recommended for production), PowerShell (quickest), NSIS, or manual.
+Three options: MSI (recommended for production), PowerShell (quickest), or manual.
 
 ### Option 1: MSI Installer (recommended)
 
@@ -142,28 +131,16 @@ To uninstall:
 powershell -ExecutionPolicy Bypass -File windows\install.ps1 -Uninstall
 ```
 
-### Option 3: NSIS Setup Wizard
-
-Build an `.exe` installer with license page, directory chooser, and uninstaller:
-
-```bash
-makensis windows/installer.nsi
-```
-
-Output: `build-win/EthiopicKeyboard-0.1.0-setup.exe`
-
-Requires [NSIS 3.0+](https://nsis.sourceforge.io/Download).
-
-### Option 4: Manual Registration
+### Option 3: Manual Registration
 
 The DLL self-registers its CLSID and language profile. From an **elevated command prompt**:
 
 ```cmd
-regsvr32 msys-ethiopic-tsf.dll
+regsvr32 ethiopic-tsf.dll
 ```
 
 This runs `DllRegisterServer()`, which:
-1. Writes CLSID under `HKCU\Software\Classes\CLSID\`
+1. Writes CLSID under `HKCR\CLSID\`
 2. Registers an "Ethiopic (SERA)" language profile for Amharic (`0x045E`) via `ITfInputProcessorProfileMgr`
 
 Data files must be placed alongside the DLL:
@@ -183,14 +160,14 @@ The DLL locates mapping files via `./data/amharic/` relative to its own path.
 #### Unregistration
 
 ```cmd
-regsvr32 /u msys-ethiopic-tsf.dll
+regsvr32 /u ethiopic-tsf.dll
 ```
 
 #### Without regsvr32
 
 ```cmd
-rundll32 msys-ethiopic-tsf.dll,DllRegisterServer
-rundll32 msys-ethiopic-tsf.dll,DllUnregisterServer
+rundll32 ethiopic-tsf.dll,DllRegisterServer
+rundll32 ethiopic-tsf.dll,DllUnregisterServer
 ```
 
 ### Activation
@@ -240,14 +217,14 @@ User types 'e'  →  OnKeyDown  →  vk_to_utf8('e')  →  m_core.filter("e")
 | Word list / candidate suggestions | Done |
 | Display attribute (underline style) | Done |
 | Ctrl+Shift toggle (passthrough) | Done |
-| Installer (PowerShell, NSIS, WiX MSI) | Done |
+| Installer (PowerShell, WiX MSI) | Done |
 
 ## Architecture notes
 
 - Modeled after Google Mozc's Windows TSF module and Microsoft's TSF sample
 - Uses `ITfComposition` for preedit (not custom rendering) — simple underline display
 - Edit sessions are asynchronous (`TF_ES_ASYNCDONTCARE`) to avoid blocking the input thread
-- The `libethio` core is compiled directly into the DLL via CMake source listing (no `add_subdirectory` — avoids a CMake 4.3 path-mangling bug with MSYS2/MinGW)
+- The `libethio` core is compiled directly into the DLL via CMake source listing
 
 ## References
 

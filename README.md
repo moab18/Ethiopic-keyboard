@@ -43,7 +43,7 @@ ethiopic-keyboard/
 │   ├── engine.cpp                     # Key event processing, composition, candidate popup, word suggestions
 │   ├── dllmain.cpp                    # COM server: DllRegisterServer, DllUnregisterServer, DllGetClassObject
 │   ├── ethiopic-tsf.def               # DLL exports
-│   └── CMakeLists.txt                 # MSYS2/MinGW-w64 CMake build
+│   └── CMakeLists.txt                 # MSVC CMake build
 ├── data/amharic/                      # Amharic SERA mapping + wordlist (template for other languages)
 ├── tests/                             # Standalone test programs
 │   ├── test_mapping.cpp               # Trie construction + JSON loading
@@ -67,7 +67,7 @@ ethiopic-keyboard/
 
 ### Windows
 
-- **MSYS2** with mingw-w64-x86_64 toolchain (GCC 13+)
+- **Visual Studio 2022** with MSVC toolchain (or VS Build Tools)
 - **CMake** 3.16+
 - **C++17** compiler
 - Windows 10+ (TSF is available since Windows 2000; tested on 10+)
@@ -100,31 +100,31 @@ The install step places:
 
 ### Windows Build & Install
 
-From an **MSYS2 mingw64 shell** in the project root:
+From the project root:
 
 ```bash
 ./build-tsf.sh
 ```
 
-This script configures, builds the TSF DLL, and runs all test executables.
+This script configures with MSVC, builds the TSF DLL, and runs all test executables.
 
-Output: `build-win/ethiopic-tsf/msys-ethiopic-tsf.dll`
+Output: `build-win/Release/ethiopic-tsf.dll`
 
-#### Registration
+#### Install
 
-From an **elevated command prompt**:
-
-```cmd
-regsvr32 msys-ethiopic-tsf.dll
-```
-
-This registers the IME's CLSID, language profile (Amharic 0x045E), and TSF category support.
-
-#### Unregistration
+Build the MSI installer:
 
 ```cmd
-regsvr32 /u msys-ethiopic-tsf.dll
+windows\build-msi.bat
 ```
+
+This creates `build-win/EthiopicKeyboard-0.1.0-x64.msi`. Install interactively:
+
+```cmd
+msiexec /i build-win\EthiopicKeyboard-0.1.0-x64.msi
+```
+
+The MSI handles DLL registration (COM, TSF profile, categories) and data file placement automatically. See `windows/ethiopic-tsf/README.md` for alternative install methods.
 
 #### Activation
 
@@ -223,7 +223,7 @@ The character mapping is built for productivity, guided by a few core decisions:
 | `hai` | ሃይ | `hailu` → ሃይሉ (or `haylu` → ሃይሉ), `hhaile` → ኃይሌ |
 | `mai` | ማይ | `maik` → ማይክ |
 | `sai` | ሳይ | `saint` → ሳይንት (Saint) |
-| `gai` | ጋይ | `gaint` → ጋይንት (giant) |
+| `gai` | ጋይ | `gaint` → ጋይንት (gaint) |
 | `tai` | ታይ | `taitai` → ታይታይ |
 | `bai` | ባይ | `baibel` → ባይብል |
 | `wai` | ዋይ | `wai` → ዋይ |

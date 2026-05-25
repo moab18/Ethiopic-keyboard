@@ -90,7 +90,7 @@ static void start_engine(gboolean exec_by_ibus)
             "0.1.0",
             "GPL-3.0+",
             "Moab",
-            "https://github.com/moab/ethiopic-keyboard",
+            "https://github.com/moab18/ethiopic-keyboard",
             LIBEXECDIR "/ibus-engine-ethiopic --ibus",
             "ibus-ethiopic");
 
