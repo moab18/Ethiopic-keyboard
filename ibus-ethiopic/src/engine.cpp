@@ -311,6 +311,19 @@ static void preedit_update(IBusEthiopicEngine *self)
                                     TRUE, IBUS_ENGINE_PREEDIT_COMMIT);
 }
 
+// Main IBus key-event callback. Processing order:
+//  1. Skip key-release events (IBUS_RELEASE_MASK)
+//  2. Skip Super-key combos (IBUS_MOD4_MASK) — OS shortcuts
+//  3. Skip password/PIN fields (is_sensitive_field)
+//  4. Ctrl+Shift → toggle passthrough mode (bilingual typing)
+//  5. Ctrl+Space  → trigger word suggestions
+//  6. Other Ctrl combos → pass through
+//  7. Passthrough mode → pass all keys through
+//  8. Lookup table navigation (Tab, arrows, 1-8, Enter)
+//  9. Escape → reset preedit
+// 10. Backspace → reset composing preedit if active
+// 11. Navigation keys → finish composition, commit, pass through
+// 12. Convert keyval → Unicode → UTF-8, feed to libethio::Engine::filter()
 static gboolean
 ibus_ethiopic_engine_process_key_event(IBusEngine *engine,
                                        guint keyval,

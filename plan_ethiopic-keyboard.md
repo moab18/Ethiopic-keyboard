@@ -1,15 +1,16 @@
 # Ethiopic Keyboard — Plan
 
 **Created:** 4/27/2026
-**Updated:** 5/16/2026
+**Updated:** 5/24/2026
 
 ---
 
 ## Architecture
 
 ```
-ibus-ethiopic (GObject C++ glue, ~500 lines)
-  → libethio   (platform-independent C++ core: trie engine + JSON mappings)
+ibus-ethiopic (GObject C++ glue, ~600 lines) ─┐
+                                                ├── libethio (platform-independent C++ core: trie engine + JSON mappings)
+ethiopic-tsf   (COM DLL, ~2,200 lines)        ─┘
 ```
 
 Two-layer design: a platform-independent C++17 core library (`libethio`) and a thin IBus engine wrapper (`ibus-ethiopic`). The same `libethio` will drive Windows TSF, macOS IMKit, Android, and iOS wrappers — only the OS glue changes.
@@ -84,7 +85,7 @@ ethiopic-keyboard/
 | **IBus engine** | Done | `ibus-ethiopic` wrapper, key event processing, preedit/commit, lookup table, word suggestions |
 | **Language Support** | Any ethiopic language such as Amharic, Tigrinya, Guragigna  etc which uses Ethiopic Alphabets . |
 | **Linux packaging** | Next | RPM (Fedora), DEB (Debian/Ubuntu), PKGBUILD (Arch) |
-| **Windows TSF** | Planned | TSF TextService wrapper around same `libethio`, MSI installer |
+| **Windows TSF** | Done | TSF TextService COM DLL, candidate popup, Ctrl+Shift passthrough, word suggestions |
 | **macOS** | Planned | Input Method Kit app (Objective-C++) wrapping `libethio` |
 | **Android** | Planned | InputMethodService + JNI wrapping `libethio` |
 | **iOS** | Planned | UIInputViewController + Swift/C++ bridging |
@@ -140,9 +141,10 @@ Install layout:
 
 ## Current Status
 
-- `libethio` core: trie engine, JSON mapping loader, wordlist/bigram support
+- `libethio` core: trie engine, JSON mapping loader, wordlist/bigram/names support
 - `ibus-ethiopic` wrapper: key event processing, preedit/commit, lookup table, word suggestions
-- Unit tests: all 5 suites passing (mapping, engine, features, wordlist, IBus integration)
+- `ethiopic-tsf` Windows wrapper: COM DLL with TSF integration, candidate popup window, Ctrl+Shift passthrough toggle, word suggestions
+- Unit tests: 6 suites passing (mapping, engine, features, wordlist, IBus integration, TSF integration)
 - SERA mapping: complete for all Ethiopic characters and engine supports any Ethiopic language
 
 ### Next actions
@@ -150,4 +152,6 @@ Install layout:
 1. Write RPM `.spec` — package for Fedora
 2. Write DEB packaging (`debian/` directory) for Ubuntu/Debian
 3. Write PKGBUILD for Arch AUR
-4. Windows TSF wrapper
+4. WiX MSI installer for Windows
+5. Android InputMethodService + JNI wrapper
+6. macOS IMKit wrapper

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #include <windows.h>
 #include <objbase.h>
 #include <msctf.h>

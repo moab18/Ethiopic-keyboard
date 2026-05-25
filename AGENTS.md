@@ -2,15 +2,16 @@
 
 ## Project summary
 
-Two-layer Ethiopic input method: a platform-independent C++ core library (`libethio`) and an IBus engine wrapper (`ibus-ethiopic`). Amharic first, then other Ethiopic-script languages. Windows TSF and mobile wrappers follow later.
+Multi-platform Ethiopic input method: a platform-independent C++ core library (`libethio`) with IBus (Linux) and TSF (Windows) wrappers. Amharic first, then other Ethiopic-script languages. Android, iOS, and macOS wrappers planned.
 
 Full design rationale, directory layout, and roadmap are in `plan_ethiopic-keyboard.md`.
 
 ## Architecture
 
 ```
-ibus-ethiopic (GObject C++ glue, ~500 lines)
-  → libethio   (platform-independent C++ core: trie engine, syllabary tables)
+ibus-ethiopic (GObject C++ glue, ~600 lines) ─┐
+                                                ├── libethio (platform-independent C++ core: trie engine + JSON mappings)
+ethiopic-tsf   (COM DLL, ~2,200 lines)        ─┘
 ```
 
 Modeled on ibus-libpinyin / ibus-chewing (separate core lib + thin IBus wrapper).
@@ -37,11 +38,11 @@ Core input engine mirrors m17n-lib's `MIMMap` trie structure, but in clean C++ w
 
 ## Implementation order (phases)
 
-1. Generate `data/amharic/sera.json` from Unicode syllable math + m17n `am-sera.mim` reference
-2. Build `libethio` (trie engine + JSON loader + unit tests)
-3. Wire `ibus-ethiopic` wrapper (GObject subclass, key event processing, preedit/commit)
-4. Package as an RPM and test on Fedora
-5. Add Tigrinya/Oromo mapping files, then Windows/mobile wrappers
+1. Generate `data/amharic/sera.json` from Unicode syllable math + m17n `am-sera.mim` reference — **Done**
+2. Build `libethio` (trie engine + JSON loader + unit tests) — **Done**
+3. Wire `ibus-ethiopic` wrapper (GObject subclass, key event processing, preedit/commit) — **Done**
+4. Build `ethiopic-tsf` Windows TSF wrapper (COM DLL, key events, composition, candidate UI) — **Done**
+5. Package as RPM/DEB for Linux, add Tigrinya/Oromo mapping files, then mobile wrappers
 
 ## Style / conventions
 

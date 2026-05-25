@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Moab
+
 #define INITGUID
 #include <initguid.h>
 #include "engine.h"
@@ -133,12 +136,18 @@ static std::string find_data_file()
     return MAPPING_SOURCE_DIR "/amharic/am-sera.json";
 }
 
+// Converts a Windows virtual-key event to a UTF-8 string using the active
+// keyboard layout. Uses ToUnicodeEx to map vk→WCHAR, then WideCharToMultiByte
+// for WCHAR→UTF-8. Returns empty string for dead keys, non-character input,
+// or keys that don't produce text (arrows, modifiers, etc.).
 static void vk_to_utf8(WPARAM wParam, LPARAM lParam, char *out, int out_size)
 {
     out[0] = '\0';
     BYTE key_state[256] = {};
     GetKeyboardState(key_state);
 
+    // Reconstruct scan code from lParam: bits 16-23 give the scan code,
+    // KF_EXTENDED (bit 24) flags enhanced keys (right-alt, nav cluster, etc.)
     UINT scan_code = (LOBYTE(HIWORD(lParam)) & 0x7F) |
                      ((HIWORD(lParam) & KF_EXTENDED) ? 0x80 : 0);
     WCHAR wch[4] = {};
@@ -166,6 +175,17 @@ static std::wstring utf8_to_wstring(const std::string &s)
 }
 
 // ---- Candidate Popup Window ----
+//
+// The candidate list is rendered as a custom HWND popup (WS_POPUP with
+// WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE). This is used
+// alongside ITfCandidateListUIElementBehavior to support both TSF-aware
+// apps (where TSF manages candidate UI lifetime) and non-TSF-aware apps
+// (where the HWND provides a visible fallback).
+//
+// The popup is painted with GDI: themed text on an infotip-colored
+// background, with the selected candidate drawn in highlight colors.
+// Position is tracked via ITfContextView::GetTextExt during edit sessions
+// so the popup sits just below the caret.
 
 static const wchar_t *kPopupWndClass = L"EthiopicCandidatePopupWnd";
 static HINSTANCE g_popupHInstance = nullptr;
@@ -930,6 +950,12 @@ CEthiopicTextService::CEthiopicTextService()
     DllAddRef();
     tlog("CEthiopicTextService ctor begin");
     try {
+        // Load data files relative to DLL location. find_data_file() searches:
+        //   1. ./data/amharic/am-sera.json (same dir as DLL)
+        //   2. ../../data/amharic/am-sera.json (build tree layout)
+        //   3. MAPPING_SOURCE_DIR fallback (compile-time path)
+        // Names, wordlist, and bigrams are loaded from the same directory as
+        // am-sera.json by substituting filename in the resolved path.
         std::string data_path = find_data_file();
         m_mapping = ethio::load_mapping_file(data_path);
         if (!m_mapping.states.empty()) {
@@ -1355,6 +1381,11 @@ static bool is_key_eaten(WPARAM wParam, LPARAM lParam)
     return true;
 }
 
+// TSF calls OnTestKeyDown before OnKeyDown to let the IME declare whether
+// it wants to consume a key. Returning *pfEaten=TRUE reserves the key for
+// OnKeyDown; FALSE lets TSF route it elsewhere first (app shortcuts, etc.).
+// We pre-claim any key that could plausibly produce Ethiopic output so that
+// candidate navigation (1-8, arrows, Tab, etc.) stays within the IME.
 STDMETHODIMP CEthiopicTextService::OnTestKeyDown(ITfContext *, WPARAM wParam,
                                                   LPARAM lParam, BOOL *pfEaten)
 {
@@ -1409,6 +1440,14 @@ STDMETHODIMP CEthiopicTextService::OnTestKeyUp(ITfContext *, WPARAM,
     return S_OK;
 }
 
+// Main key-event pipeline for the TSF IME. Processing order:
+//  1. Ctrl+Shift → toggle passthrough mode
+//  2. Ctrl+Space  → trigger word suggestions
+//  3. Candidate navigation (arrows, Tab, 1-8, Enter, Escape)
+//  4. Passthrough check (pass key through if passthrough mode active)
+//  5. VK_BACK     → reset composing preedit
+//  6. vk_to_utf8  → libethio::Engine::filter() → commit + preedit update
+// All text changes go through CEthiopicEditSession (TSF edit cookie contract).
 STDMETHODIMP CEthiopicTextService::OnKeyDown(ITfContext *pContext,
                                                WPARAM wParam, LPARAM lParam,
                                                BOOL *pfEaten)
@@ -1958,6 +1997,9 @@ void CEthiopicTextService::ProcessKeyUtf8(const char *utf8)
     m_testPreedit = composing;
 }
 
+// Ethiopic punctuation characters (፡ through ፦, U+1361–U+1366) act as word
+// boundaries alongside ASCII space and newline. This is used by _TrackWord to
+// segment the accumulated word buffer for bigram-based next-word prediction.
 bool CEthiopicTextService::_IsWordBoundary(const std::string &s)
 {
     return s == " " || s == "\n" ||

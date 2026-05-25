@@ -2,15 +2,17 @@
 
 ፈጣን የአማርኛ መጻፊያ ኪቦርድ
 
-A two-layer Ethiopic input method for Linux: a platform-independent C++ core library (`libethio`) and an IBus engine wrapper (`ibus-ethiopic`). The JSON mapping covers all Ethiopic Unicode characters — the same engine and mapping work for every Ethiopic-script language (Amharic, Tigrinya, Oromo, Guragigna, etc.). Windows TSF and mobile wrappers planned.
+A multi-platform Ethiopic input method: a platform-independent C++ core library (`libethio`) with IBus (Linux) and TSF (Windows) wrappers. The JSON mapping covers all Ethiopic Unicode characters — the same engine and mapping work for every Ethiopic-script language (Amharic, Tigrinya, Oromo, Guragigna, etc.). Android, iOS, and macOS wrappers planned.
 
 ## Architecture
 
 ```
-ibus-ethiopic (GObject C++ glue)  →  libethio (C++ trie engine + JSON mappings)
+ibus-ethiopic (GObject C++ glue)  ─┐
+                                    ├── libethio (C++ trie engine + JSON mappings)
+ethiopic-tsf   (COM DLL, TSF IME)  ─┘
 ```
 
-Modeled on ibus-libpinyin and ibus-chewing (separate core lib + thin IBus wrapper). The core input engine mirrors m17n-lib's `MIMMap` trie structure, but in clean C++ with JSON mapping files instead of S-expressions.
+Modeled on ibus-libpinyin and ibus-chewing (separate core lib + thin platform wrapper). The core input engine mirrors m17n-lib's `MIMMap` trie structure, but in clean C++ with JSON mapping files instead of S-expressions.
 
 ## Project Structure
 
@@ -36,6 +38,12 @@ ethiopic-keyboard/
 │   │   └── engine.cpp                 # Key events, preedit/commit, focus/reset
 │   └── data/
 │       └── ethiopic.xml               # IBus component registration
+├── windows/ethiopic-tsf/              # Windows TSF IME
+│   ├── engine.h                       # CEthiopicTextService COM class (ITfTextInputProcessorEx, ITfKeyEventSink, etc.)
+│   ├── engine.cpp                     # Key event processing, composition, candidate popup, word suggestions
+│   ├── dllmain.cpp                    # COM server: DllRegisterServer, DllUnregisterServer, DllGetClassObject
+│   ├── ethiopic-tsf.def               # DLL exports
+│   └── CMakeLists.txt                 # MSYS2/MinGW-w64 CMake build
 ├── data/amharic/                      # Amharic SERA mapping + wordlist (template for other languages)
 ├── tests/                             # Standalone test programs
 │   ├── test_mapping.cpp               # Trie construction + JSON loading
@@ -43,15 +51,26 @@ ethiopic-keyboard/
 │   ├── test_features.cpp              # Feature-level behavior + edge cases
 │   ├── test_wordlist.cpp              # Word list loading + suggestions
 │   └── test_ibus_engine.cpp           # IBus integration (key events, preedit, commit)
-└── build*/                            # Build directories (gitignored)
+├── win-tests/                         # Windows-specific test build
+│   └── CMakeLists.txt                 # MSVC test build configuration
+├── build*/                            # Build directories (gitignored)
 ```
 
 ## Requirements
+
+### Linux
 
 - **CMake** 3.16+
 - **C++17** compiler (tested with GCC 13+ and Clang 18+)
 - **IBus** 1.5+ (`ibus-1.0` pkg-config package)
 - **GLib** 2.0 (`glib-2.0`, `gio-2.0` pkg-config packages)
+
+### Windows
+
+- **MSYS2** with mingw-w64-x86_64 toolchain (GCC 13+)
+- **CMake** 3.16+
+- **C++17** compiler
+- Windows 10+ (TSF is available since Windows 2000; tested on 10+)
 
 ## Build & Install
 
@@ -78,6 +97,43 @@ The install step places:
 - `${LIBEXECDIR}/ibus-engine-ethiopic` — the engine executable (e.g. `/usr/libexec/ibus-engine-ethiopic`)
 - `${DATADIR}/ibus/component/ethiopic.xml` — IBus component registration
 - `${DATADIR}/ibus-ethiopic/` — mapping data (`*.json`), engine defaults
+
+### Windows Build & Install
+
+From an **MSYS2 mingw64 shell** in the project root:
+
+```bash
+./build-tsf.sh
+```
+
+This script configures, builds the TSF DLL, and runs all test executables.
+
+Output: `build-win/ethiopic-tsf/msys-ethiopic-tsf.dll`
+
+#### Registration
+
+From an **elevated command prompt**:
+
+```cmd
+regsvr32 msys-ethiopic-tsf.dll
+```
+
+This registers the IME's CLSID, language profile (Amharic 0x045E), and TSF category support.
+
+#### Unregistration
+
+```cmd
+regsvr32 /u msys-ethiopic-tsf.dll
+```
+
+#### Activation
+
+1. Open **Settings → Time & Language → Language → Amharic → Options → Keyboards**
+2. Add **Ethiopic (SERA)**
+3. Switch to it via the language bar or `Win+Space`
+
+The IME intercepts keystrokes in any TSF-aware application (Notepad, Word, browsers, VS Code, etc.).
+
 
 ### Running tests
 
@@ -356,8 +412,8 @@ The trie engine handles several cases automatically:
 ### Planned
 
 - Word prediction and suggestions (static + dynamic word pools) — **in progress**
-- Windows TSF wrapper
 - Mobile (Android/iOS) wrappers
+- macOS Input Method Kit wrapper
 
 ## Word Suggestions
 
@@ -396,3 +452,5 @@ GPL-3.0-or-later. The bundled JSON parser (`libethio/include/ethio/json.hpp`) is
 | [m17n-db](https://git.savannah.nongnu.org/cgit/m17n/m17n-db.git) | Reference SERA mappings (Amharic, Tigrinya, etc.) |
 | [ibus-m17n](https://github.com/ibus/ibus-m17n) | IBus ↔ m17n bridge |
 | [IBus DevGuide](https://github.com/ibus/ibus/wiki/DevGuide) | Official IBus developer guide |
+| [TSF Documentation](https://docs.microsoft.com/en-us/windows/win32/tsf/text-services-framework) | Windows Text Services Framework |
+| [Google Mozc (TSF module)](https://github.com/google/mozc) | Production TSF IME reference |
