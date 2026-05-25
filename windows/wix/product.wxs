@@ -1,0 +1,195 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) 2026 Moab -->
+
+<!--
+  Ethiopic TSF IME — WiX MSI Installer
+  =====================================
+  Build:   windows\build-msi.bat
+  Output:  build-win\EthiopicKeyboard-0.1.0-x64.msi
+
+  Requires WiX Toolset v4+ (https://wixtoolset.org/)
+    dotnet tool install --global wix
+-->
+
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+    <!--
+      UpgradeCode: stable GUID across versions.
+      Change this ONLY when breaking upgrade compatibility.
+    -->
+    <?define UpgradeCode="9F3B7C2A-8D4E-4F1A-B5C6-2E7A9D3F4B1C"?>
+    <?define ProductName="Ethiopic Keyboard"?>
+    <?define Manufacturer="Moab"?>
+    <?define Version="0.1.0"?>
+
+    <Package Name="$(var.ProductName)"
+             Manufacturer="$(var.Manufacturer)"
+             Version="$(var.Version)"
+             UpgradeCode="$(var.UpgradeCode)"
+             Language="1033"
+             InstallerVersion="500"
+             Compressed="yes"
+             Scope="perMachine" />
+
+    <!--
+      Allow major upgrades: uninstall old version before installing new.
+    -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of $(var.ProductName) is already installed."
+                   AllowSameVersionUpgrades="yes" />
+
+    <!--
+      Require Windows 10 (Build 10240) or later.
+    -->
+    <Launch Condition="VersionNT64 &gt;= 10000"
+            Message="$(var.ProductName) requires Windows 10 or later (64-bit)." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!--
+      ── UI ────────────────────────────────────────────────────────
+      WixUI_InstallDir gives: welcome, directory chooser, progress, finish.
+      The install directory is bound to INSTALLFOLDER below.
+      To add a license page, set WixUILicenseRtf to an .rtf file and use
+      WixUI_Minimal or WixUI_FeatureTree instead.
+    -->
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
+    <!--
+      ── Install directory ─────────────────────────────────────────
+    -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+        <Directory Id="ManufacturerFolder" Name="$(var.Manufacturer)">
+            <Directory Id="INSTALLFOLDER" Name="$(var.ProductName)">
+
+                <!-- Main DLL -->
+                <Component Id="C_EthiopicTsfDll"
+                           Guid="A1B2C3D4-E5F6-4789-ABCD-EF0123456789"
+                           DiskId="1">
+                    <File Id="F_EthiopicTsfDll"
+                          Name="ethiopic-tsf.dll"
+                          Source="..\..\build-win\ethiopic-tsf\msys-ethiopic-tsf.dll"
+                          KeyPath="yes"
+                          Checksum="yes" />
+                    <!--
+                      COM self-registration at install/uninstall time.
+                      Deferred + no-impersonate = runs as SYSTEM during
+                      elevated install, which is required for TSF profile
+                      registration via ITfInputProcessorProfileMgr.
+                    -->
+                </Component>
+
+                <!-- Data directory -->
+                <Directory Id="DataDir" Name="data">
+                    <Directory Id="AmharicDir" Name="amharic">
+
+                        <Component Id="C_AmSeraJson"
+                                   Guid="B2C3D4E5-F6A7-4890-BCDE-F12345678901"
+                                   DiskId="1">
+                            <File Id="F_AmSeraJson"
+                                  Name="am-sera.json"
+                                  Source="..\..\data\amharic\am-sera.json"
+                                  KeyPath="yes" />
+                        </Component>
+
+                        <Component Id="C_WordlistJson"
+                                   Guid="C3D4E5F6-A7B8-4901-CDEF-012345678902"
+                                   DiskId="1">
+                            <File Id="F_WordlistJson"
+                                  Name="wordlist.json"
+                                  Source="..\..\data\amharic\wordlist.json"
+                                  KeyPath="yes" />
+                        </Component>
+
+                        <Component Id="C_BigramsJson"
+                                   Guid="D4E5F6A7-B8C9-4012-DEFA-123456789003"
+                                   DiskId="1">
+                            <File Id="F_BigramsJson"
+                                  Name="bigrams.json"
+                                  Source="..\..\data\amharic\bigrams.json"
+                                  KeyPath="yes" />
+                        </Component>
+
+                        <Component Id="C_NamesJson"
+                                   Guid="E5F6A7B8-C9D0-4123-EFAB-234567890014"
+                                   DiskId="1">
+                            <File Id="F_NamesJson"
+                                  Name="names.json"
+                                  Source="..\..\data\amharic\names.json"
+                                  KeyPath="yes" />
+                        </Component>
+
+                    </Directory>
+                </Directory>
+
+            </Directory>
+        </Directory>
+    </StandardDirectory>
+
+    <!--
+      ── Feature tree ──────────────────────────────────────────────
+    -->
+    <Feature Id="F_EthiopicIME"
+             Title="$(var.ProductName)"
+             Description="Ethiopic SERA transliteration input method for Windows"
+             Level="1"
+             Display="expand"
+             ConfigurableDirectory="INSTALLFOLDER"
+             AllowAdvertise="no">
+        <ComponentRef Id="C_EthiopicTsfDll" />
+        <ComponentRef Id="C_AmSeraJson" />
+        <ComponentRef Id="C_WordlistJson" />
+        <ComponentRef Id="C_BigramsJson" />
+        <ComponentRef Id="C_NamesJson" />
+    </Feature>
+
+    <!--
+      ── COM Registration ──────────────────────────────────────────
+      Calls regsvr32.exe /s on the installed DLL. This is a deferred
+      custom action (runs elevated during the install transaction, after
+      files are laid down). [#F_EthiopicTsfDll] resolves to the full
+      installed path of the DLL.
+
+      We use regsvr32 rather than a Type-1 DLL call because DllRegisterServer()
+      takes no arguments but MSI custom action entry points require the
+      signature UINT __stdcall EntryPoint(MSIHANDLE hInstall).
+
+      Component state conditions:
+        &C_EthiopicTsfDll=3  → component is being installed locally
+        &C_EthiopicTsfDll=2  → component is being removed
+    -->
+    <SetProperty Id="CA_RegisterServer"
+                 Value='"[System64Folder]regsvr32.exe" /s "[#F_EthiopicTsfDll]"'
+                 Before="CA_RegisterServer"
+                 Sequence="execute" />
+
+    <SetProperty Id="CA_UnregisterServer"
+                 Value='"[System64Folder]regsvr32.exe" /u /s "[#F_EthiopicTsfDll]"'
+                 Before="CA_UnregisterServer"
+                 Sequence="execute" />
+
+    <CustomAction Id="CA_RegisterServer"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check"
+                  BinaryRef="Wix4UtilCA_X64" />
+
+    <CustomAction Id="CA_UnregisterServer"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check"
+                  BinaryRef="Wix4UtilCA_X64" />
+
+    <InstallExecuteSequence>
+        <Custom Action="CA_RegisterServer"
+                After="InstallFiles"
+                Condition="&amp;C_EthiopicTsfDll=3" />
+        <Custom Action="CA_UnregisterServer"
+                Before="RemoveFiles"
+                Condition="&amp;C_EthiopicTsfDll=2" />
+    </InstallExecuteSequence>
+
+</Wix>

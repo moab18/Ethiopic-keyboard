@@ -104,9 +104,29 @@ After registering the DLL (see Deploy below), switch to the IME in the language 
 
 ## Deploy
 
-Three options: a one-command PowerShell installer, an NSIS-based setup wizard, or manual registration.
+Four options: MSI (recommended for production), PowerShell (quickest), NSIS, or manual.
 
-### Option 1: PowerShell Installer (quickest)
+### Option 1: MSI Installer (recommended)
+
+Build a standard Windows Installer `.msi` package using the [WiX Toolset](https://wixtoolset.org/):
+
+```cmd
+windows\build-msi.bat
+```
+
+Output: `build-win/EthiopicKeyboard-0.1.0-x64.msi`
+
+Requires WiX v4+ (`dotnet tool install --global wix`).
+
+The MSI supports:
+- Interactive install with directory chooser
+- Silent install: `msiexec /i EthiopicKeyboard-0.1.0-x64.msi /qn`
+- Silent uninstall: `msiexec /x EthiopicKeyboard-0.1.0-x64.msi /qn`
+- Major upgrades (replace old version automatically)
+- Add/Remove Programs entry with publisher metadata
+- Enterprise deployment via Group Policy / SCCM
+
+### Option 2: PowerShell Installer (quickest)
 
 From an **elevated PowerShell** in the project root:
 
@@ -122,7 +142,7 @@ To uninstall:
 powershell -ExecutionPolicy Bypass -File windows\install.ps1 -Uninstall
 ```
 
-### Option 2: NSIS Setup Wizard
+### Option 3: NSIS Setup Wizard
 
 Build an `.exe` installer with license page, directory chooser, and uninstaller:
 
@@ -134,7 +154,7 @@ Output: `build-win/EthiopicKeyboard-0.1.0-setup.exe`
 
 Requires [NSIS 3.0+](https://nsis.sourceforge.io/Download).
 
-### Option 3: Manual Registration
+### Option 4: Manual Registration
 
 The DLL self-registers its CLSID and language profile. From an **elevated command prompt**:
 
@@ -217,10 +237,10 @@ User types 'e'  →  OnKeyDown  →  vk_to_utf8('e')  →  m_core.filter("e")
 | Multi-syllable word input | Done |
 | Labiovelar support (hW, kW, etc.) | Done |
 | Punctuation + numerals | Done |
-| Word list / candidate suggestions | Pending |
-| Display attribute (underline style) | Pending |
-| Ctrl+Shift toggle (passthrough) | Pending |
-| Installer (WiX MSI) | Pending |
+| Word list / candidate suggestions | Done |
+| Display attribute (underline style) | Done |
+| Ctrl+Shift toggle (passthrough) | Done |
+| Installer (PowerShell, NSIS, WiX MSI) | Done |
 
 ## Architecture notes
 
