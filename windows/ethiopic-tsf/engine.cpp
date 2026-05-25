@@ -13,14 +13,17 @@
 #include "ethio/json.hpp"
 #include "ethio/mapping.h"
 
+#ifndef NDEBUG
 static HANDLE get_log_mutex()
 {
     static HANDLE hMutex = CreateMutexA(NULL, FALSE, "Local\\EthiopicTSF_LogMutex");
     return hMutex;
 }
+#endif
 
 static void elog(const char *msg)
 {
+#ifndef NDEBUG
     SYSTEMTIME st;
     GetLocalTime(&st);
     DWORD pid = GetCurrentProcessId();
@@ -51,6 +54,9 @@ static void elog(const char *msg)
     }
 
     if (hMutex) ReleaseMutex(hMutex);
+#else
+    (void)msg;
+#endif
 }
 
 static bool g_dllUnloading = false;
@@ -95,6 +101,7 @@ template<> const GUID &__mingw_uuidof<ITfDisplayAttributeProvider>() { return II
 
 static void tlog(const char *msg)
 {
+#ifndef NDEBUG
     const char *path = std::getenv("ETHIOPIC_TSF_LOG");
     if (!path) return;
     FILE *f = fopen(path, "a");
@@ -102,6 +109,9 @@ static void tlog(const char *msg)
         fprintf(f, "%s\n", msg);
         fclose(f);
     }
+#else
+    (void)msg;
+#endif
 }
 
 static std::string find_data_file()
@@ -120,16 +130,40 @@ static std::string find_data_file()
     if (last_sep != std::string::npos)
         dir = dir.substr(0, last_sep);
 
-    std::string path = dir + "/data/amharic/am-sera.json";
-    if (GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES) {
-        elog("find_data_file: found at data/amharic");
-        return path;
+    elog(dir.c_str());
+
+    // Candidates relative to the DLL directory, tried in order:
+    //   1. ./data/amharic/am-sera.json       — installed alongside DLL
+    //   2. ../../data/amharic/am-sera.json   — build tree
+    //   3. ../data/amharic/am-sera.json      — DLL in a subfolder
+    const char *candidates[] = {
+        "/data/amharic/am-sera.json",
+        "/../../data/amharic/am-sera.json",
+        "/../data/amharic/am-sera.json",
+    };
+
+    for (int i = 0; i < 3; i++) {
+        std::string path = dir + candidates[i];
+        if (GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES) {
+            elog("find_data_file: found data file");
+            return path;
+        }
     }
 
-    path = dir + "/../../data/amharic/am-sera.json";
-    if (GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES) {
-        elog("find_data_file: found at ../../data/amharic");
-        return path;
+    // Try relative to the host executable as a last runtime resort.
+    char exe_path[MAX_PATH];
+    if (GetModuleFileNameA(nullptr, exe_path, MAX_PATH)) {
+        std::string exe_dir(exe_path);
+        size_t sep = exe_dir.find_last_of("\\/");
+        if (sep != std::string::npos)
+            exe_dir = exe_dir.substr(0, sep);
+        for (int i = 0; i < 3; i++) {
+            std::string path = exe_dir + candidates[i];
+            if (GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES) {
+                elog("find_data_file: found data file (relative to exe)");
+                return path;
+            }
+        }
     }
 
     elog("find_data_file: using hardcoded MAPPING_SOURCE_DIR");
@@ -1333,10 +1367,12 @@ STDMETHODIMP CEthiopicTextService::Deactivate()
 
 STDMETHODIMP CEthiopicTextService::OnSetFocus(BOOL fForeground)
 {
+#ifndef NDEBUG
     char b[64];
     snprintf(b, sizeof(b), "[EthiopicTSF] KeyEventSink::OnSetFocus fg=%d\n", (int)fForeground);
     OutputDebugStringA(b);
     elog(b);
+#endif
 
     if (!fForeground) {
         HideCandidatePopup();

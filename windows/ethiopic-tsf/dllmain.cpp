@@ -84,6 +84,8 @@ public:
 
 static CEthiopicClassFactory *g_pClassFactory = nullptr;
 
+#ifndef NDEBUG
+
 static const char *log_path()
 {
     static char path[MAX_PATH];
@@ -114,8 +116,11 @@ static void log_unlock()
     if (h) ReleaseMutex(h);
 }
 
+#endif // NDEBUG
+
 static void reg_log(const char *msg)
 {
+#ifndef NDEBUG
     SYSTEMTIME st;
     GetLocalTime(&st);
     DWORD pid = GetCurrentProcessId();
@@ -135,10 +140,14 @@ static void reg_log(const char *msg)
         fclose(f);
     }
     log_unlock();
+#else
+    (void)msg;
+#endif
 }
 
 static void reg_log_hr(const char *msg, HRESULT hr)
 {
+#ifndef NDEBUG
     SYSTEMTIME st;
     GetLocalTime(&st);
     DWORD pid = GetCurrentProcessId();
@@ -158,10 +167,15 @@ static void reg_log_hr(const char *msg, HRESULT hr)
         fclose(f);
     }
     log_unlock();
+#else
+    (void)msg;
+    (void)hr;
+#endif
 }
 
 static void reg_log_reg(const char *msg, LONG result)
 {
+#ifndef NDEBUG
     SYSTEMTIME st;
     GetLocalTime(&st);
     DWORD pid = GetCurrentProcessId();
@@ -181,6 +195,10 @@ static void reg_log_reg(const char *msg, LONG result)
         fclose(f);
     }
     log_unlock();
+#else
+    (void)msg;
+    (void)result;
+#endif
 }
 
 static const WCHAR TEXTSERVICE_DESC[] = L"Ethiopic (SERA)";
@@ -489,41 +507,59 @@ STDAPI DllCanUnloadNow()
 
 STDAPI DllRegisterServer()
 {
+#ifndef NDEBUG
     OutputDebugStringA("EthiopicTSF: DllRegisterServer begin\n");
+#endif
 
     if (!RegisterServer()) {
+#ifndef NDEBUG
         OutputDebugStringA("EthiopicTSF: RegisterServer FAILED\n");
+#endif
         DllUnregisterServer();
         return E_FAIL;
     }
+#ifndef NDEBUG
     OutputDebugStringA("EthiopicTSF: RegisterServer OK\n");
+#endif
 
     HRESULT hrCom = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     bool needUninit = (SUCCEEDED(hrCom));
     if (FAILED(hrCom) && hrCom != RPC_E_CHANGED_MODE) {
+#ifndef NDEBUG
         OutputDebugStringA("EthiopicTSF: CoInitializeEx FAILED\n");
+#endif
         DllUnregisterServer();
         return E_FAIL;
     }
 
     if (!RegisterProfiles()) {
+#ifndef NDEBUG
         OutputDebugStringA("EthiopicTSF: RegisterProfiles FAILED\n");
+#endif
         if (needUninit) CoUninitialize();
         DllUnregisterServer();
         return E_FAIL;
     }
+#ifndef NDEBUG
     OutputDebugStringA("EthiopicTSF: RegisterProfiles OK\n");
+#endif
 
     if (!RegisterCategories()) {
+#ifndef NDEBUG
         OutputDebugStringA("EthiopicTSF: RegisterCategories FAILED\n");
+#endif
         if (needUninit) CoUninitialize();
         DllUnregisterServer();
         return E_FAIL;
     }
+#ifndef NDEBUG
     OutputDebugStringA("EthiopicTSF: RegisterCategories OK\n");
+#endif
 
     if (needUninit) CoUninitialize();
+#ifndef NDEBUG
     OutputDebugStringA("EthiopicTSF: DllRegisterServer success\n");
+#endif
     return S_OK;
 }
 
