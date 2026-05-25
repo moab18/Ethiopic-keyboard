@@ -20,10 +20,10 @@ ethiopic-tsf (COM DLL, ~650 lines C++)
 
 ## Requirements
 
+- **64-bit Windows 10 or later** (x64 only; 32-bit/x86 not supported)
 - **MSYS2** with mingw-w64-x86_64 toolchain (GCC 13+)
 - **CMake** 3.16+
 - **C++17** compiler
-- Windows 10+ (TSF is available on Windows 2000+, tested on 10+)
 
 System libraries linked: `ole32`, `oleaut32`, `advapi32`, `uuid` (all standard Windows SDK).
 

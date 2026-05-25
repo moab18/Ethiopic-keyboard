@@ -29,6 +29,16 @@ OutFile "..\build-win\EthiopicKeyboard-${PRODUCT_VERSION}-setup.exe"
 InstallDir "$PROGRAMFILES64\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIRREGKEY}" ""
 RequestExecutionLevel admin
+
+; Require 64-bit Windows
+!include "x64.nsh"
+Function .onInit
+    ${IfNot} ${RunningX64}
+        MessageBox MB_ICONSTOP "${PRODUCT_NAME} requires 64-bit Windows. 32-bit is not supported."
+        Abort
+    ${EndIf}
+FunctionEnd
+
 ShowInstDetails show
 ShowUninstDetails show
 

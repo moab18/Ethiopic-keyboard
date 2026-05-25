@@ -29,6 +29,12 @@ function Test-Admin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+# ── Require 64-bit Windows ───────────────────────────────────────
+if (-not [Environment]::Is64BitOperatingSystem) {
+    Write-Host "[Ethiopic IME] ERROR: 64-bit Windows required. 32-bit is not supported."
+    exit 1
+}
+
 if (-not (Test-Admin)) {
     Write-Host "[Ethiopic IME] Requesting administrator privileges..."
     $args = "-ExecutionPolicy Bypass -NoProfile -File `"$($MyInvocation.MyCommand.Path)`""
