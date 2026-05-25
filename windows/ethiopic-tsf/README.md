@@ -104,7 +104,37 @@ After registering the DLL (see Deploy below), switch to the IME in the language 
 
 ## Deploy
 
-### Registration
+Three options: a one-command PowerShell installer, an NSIS-based setup wizard, or manual registration.
+
+### Option 1: PowerShell Installer (quickest)
+
+From an **elevated PowerShell** in the project root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File windows\install.ps1
+```
+
+This copies the DLL and all data files to `C:\Program Files\Moab\Ethiopic Keyboard\`, registers the IME, and verifies the installation.
+
+To uninstall:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File windows\install.ps1 -Uninstall
+```
+
+### Option 2: NSIS Setup Wizard
+
+Build an `.exe` installer with license page, directory chooser, and uninstaller:
+
+```bash
+makensis windows/installer.nsi
+```
+
+Output: `build-win/EthiopicKeyboard-0.1.0-setup.exe`
+
+Requires [NSIS 3.0+](https://nsis.sourceforge.io/Download).
+
+### Option 3: Manual Registration
 
 The DLL self-registers its CLSID and language profile. From an **elevated command prompt**:
 
@@ -113,16 +143,30 @@ regsvr32 msys-ethiopic-tsf.dll
 ```
 
 This runs `DllRegisterServer()`, which:
-1. Writes CLSID `{7A5B3C1D-9E2F-4A6B-8C3D-1E5F7A9B2C4D}` under `HKCU\Software\Classes\CLSID\`
+1. Writes CLSID under `HKCU\Software\Classes\CLSID\`
 2. Registers an "Ethiopic (SERA)" language profile for Amharic (`0x045E`) via `ITfInputProcessorProfileMgr`
 
-### Unregistration
+Data files must be placed alongside the DLL:
+```
+<install-dir>\
+├── ethiopic-tsf.dll
+└── data\
+    └── amharic\
+        ├── am-sera.json
+        ├── wordlist.json
+        ├── bigrams.json
+        └── names.json
+```
+
+The DLL locates mapping files via `./data/amharic/` relative to its own path.
+
+#### Unregistration
 
 ```cmd
 regsvr32 /u msys-ethiopic-tsf.dll
 ```
 
-### Manual registration (without regsvr32)
+#### Without regsvr32
 
 ```cmd
 rundll32 msys-ethiopic-tsf.dll,DllRegisterServer
@@ -131,19 +175,12 @@ rundll32 msys-ethiopic-tsf.dll,DllUnregisterServer
 
 ### Activation
 
-After registration:
+After installation:
 1. Open **Settings → Time & Language → Language → Amharic → Options → Keyboards**
 2. Add **Ethiopic (SERA)**
 3. Switch to it via the language bar or `Win+Space`
 
 The IME will now intercept keystrokes in any TSF-aware application (Notepad, Word, browsers, VS Code, etc.).
-
-### Distribution
-
-For end-user deployment, package `msys-ethiopic-tsf.dll` and the `data/amharic/am-sera.json` mapping file together. The DLL locates the JSON mapping file relative to its own path:
-
-1. `./data/amharic/am-sera.json` (same directory as DLL)
-2. `../../data/amharic/am-sera.json` (two levels up from DLL — standard build layout)
 
 ## How it works
 
