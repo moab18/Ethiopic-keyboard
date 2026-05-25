@@ -36,3 +36,6 @@ compile_commands.json
 
 # Session notes
 session-ses_*.md
+.wix
+wix
+!windows/wix/

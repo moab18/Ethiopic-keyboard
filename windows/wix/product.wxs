@@ -8,7 +8,7 @@
   Output:  build-win\EthiopicKeyboard-0.1.0-x64.msi
 
   Requires WiX Toolset v4+ (https://wixtoolset.org/)
-    dotnet tool install --global wix
+    dotnet tool install -g wix
 -->
 
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
@@ -30,7 +30,7 @@
              Language="1033"
              InstallerVersion="500"
              Compressed="yes"
-             Scope="perMachine" />
+             Scope="perMachine">
 
     <!--
       Allow major upgrades: uninstall old version before installing new.
@@ -38,11 +38,6 @@
     <MajorUpgrade DowngradeErrorMessage="A newer version of $(var.ProductName) is already installed."
                    AllowSameVersionUpgrades="yes" />
 
-    <!--
-      Require Windows 10 (Build 10240) or later.
-    -->
-    <Launch Condition="VersionNT64 &gt;= 10000"
-            Message="$(var.ProductName) requires Windows 10 or later (64-bit)." />
 
     <MediaTemplate EmbedCab="yes" />
 
@@ -54,7 +49,8 @@
       WixUI_Minimal or WixUI_FeatureTree instead.
     -->
     <ui:WixUI Id="WixUI_InstallDir" />
-    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="windows\wix\license.rtf" />
 
     <!--
       ── Install directory ─────────────────────────────────────────
@@ -69,15 +65,9 @@
                            DiskId="1">
                     <File Id="F_EthiopicTsfDll"
                           Name="ethiopic-tsf.dll"
-                          Source="..\..\build-win\ethiopic-tsf\msys-ethiopic-tsf.dll"
+                          Source="build-win\Release\ethiopic-tsf.dll"
                           KeyPath="yes"
                           Checksum="yes" />
-                    <!--
-                      COM self-registration at install/uninstall time.
-                      Deferred + no-impersonate = runs as SYSTEM during
-                      elevated install, which is required for TSF profile
-                      registration via ITfInputProcessorProfileMgr.
-                    -->
                 </Component>
 
                 <!-- Data directory -->
@@ -89,7 +79,7 @@
                                    DiskId="1">
                             <File Id="F_AmSeraJson"
                                   Name="am-sera.json"
-                                  Source="..\..\data\amharic\am-sera.json"
+                                  Source="data\amharic\am-sera.json"
                                   KeyPath="yes" />
                         </Component>
 
@@ -98,7 +88,7 @@
                                    DiskId="1">
                             <File Id="F_WordlistJson"
                                   Name="wordlist.json"
-                                  Source="..\..\data\amharic\wordlist.json"
+                                  Source="data\amharic\wordlist.json"
                                   KeyPath="yes" />
                         </Component>
 
@@ -107,7 +97,7 @@
                                    DiskId="1">
                             <File Id="F_BigramsJson"
                                   Name="bigrams.json"
-                                  Source="..\..\data\amharic\bigrams.json"
+                                  Source="data\amharic\bigrams.json"
                                   KeyPath="yes" />
                         </Component>
 
@@ -116,7 +106,7 @@
                                    DiskId="1">
                             <File Id="F_NamesJson"
                                   Name="names.json"
-                                  Source="..\..\data\amharic\names.json"
+                                  Source="data\amharic\names.json"
                                   KeyPath="yes" />
                         </Component>
 
@@ -144,52 +134,35 @@
         <ComponentRef Id="C_NamesJson" />
     </Feature>
 
+
     <!--
-      ── COM Registration ──────────────────────────────────────────
-      Calls regsvr32.exe /s on the installed DLL. This is a deferred
-      custom action (runs elevated during the install transaction, after
-      files are laid down). [#F_EthiopicTsfDll] resolves to the full
-      installed path of the DLL.
-
-      We use regsvr32 rather than a Type-1 DLL call because DllRegisterServer()
-      takes no arguments but MSI custom action entry points require the
-      signature UINT __stdcall EntryPoint(MSIHANDLE hInstall).
-
-      Component state conditions:
-        &C_EthiopicTsfDll=3  → component is being installed locally
-        &C_EthiopicTsfDll=2  → component is being removed
+      ── COM / TSF registration ────────────────────────────────────
+      regsvr32.exe /s calls DllRegisterServer which handles:
+        - COM class registration (HKCR\CLSID\...)
+        - TSF profile registration (ITfInputProcessorProfileMgr)
+        - TSF category registration (ITfCategoryMgr)
+      Deferred + Impersonate="no" = runs elevated (SYSTEM), required
+      for writing to HKCR and calling TSF COM activation.
     -->
-    <SetProperty Id="CA_RegisterServer"
-                 Value='"[System64Folder]regsvr32.exe" /s "[#F_EthiopicTsfDll]"'
-                 Before="CA_RegisterServer"
-                 Sequence="execute" />
-
-    <SetProperty Id="CA_UnregisterServer"
-                 Value='"[System64Folder]regsvr32.exe" /u /s "[#F_EthiopicTsfDll]"'
-                 Before="CA_UnregisterServer"
-                 Sequence="execute" />
-
-    <CustomAction Id="CA_RegisterServer"
-                  DllEntry="WixQuietExec64"
+    <CustomAction Id="RegisterDll"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand='"[SystemFolder]regsvr32.exe" /s "[INSTALLFOLDER]ethiopic-tsf.dll"'
                   Execute="deferred"
                   Impersonate="no"
-                  Return="check"
-                  BinaryRef="Wix4UtilCA_X64" />
+                  Return="check" />
 
-    <CustomAction Id="CA_UnregisterServer"
-                  DllEntry="WixQuietExec64"
+    <CustomAction Id="UnregisterDll"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand='"[SystemFolder]regsvr32.exe" /u /s "[INSTALLFOLDER]ethiopic-tsf.dll"'
                   Execute="deferred"
                   Impersonate="no"
-                  Return="check"
-                  BinaryRef="Wix4UtilCA_X64" />
+                  Return="check" />
 
     <InstallExecuteSequence>
-        <Custom Action="CA_RegisterServer"
-                After="InstallFiles"
-                Condition="&amp;C_EthiopicTsfDll=3" />
-        <Custom Action="CA_UnregisterServer"
-                Before="RemoveFiles"
-                Condition="&amp;C_EthiopicTsfDll=2" />
+        <Custom Action="RegisterDll" After="InstallFiles" Condition="NOT Installed" />
+        <Custom Action="UnregisterDll" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
+
+    </Package>
 
 </Wix>
