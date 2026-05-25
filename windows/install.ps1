@@ -39,8 +39,8 @@ if (-not (Test-Admin)) {
     Write-Host "[Ethiopic IME] Requesting administrator privileges..."
     $args = "-ExecutionPolicy Bypass -NoProfile -File `"$($MyInvocation.MyCommand.Path)`""
     if ($Uninstall) { $args += " -Uninstall" }
-    Start-Process powershell.exe -Verb RunAs -ArgumentList $args -Wait
-    exit $LASTEXITCODE
+    $elevated = Start-Process powershell.exe -Verb RunAs -ArgumentList $args -Wait -PassThru
+    exit $elevated.ExitCode
 }
 
 # ── Locate built DLL ─────────────────────────────────────────────
@@ -49,10 +49,7 @@ function Find-Dll {
     $projectRoot = Resolve-Path "$scriptDir\.."
 
     $candidates = @(
-        "$projectRoot\build-win\ethiopic-tsf\msys-ethiopic-tsf.dll",
-        "$projectRoot\build-win\Release\ethiopic-tsf.dll",
-        "$projectRoot\build-win\ethiopic-tsf\ethiopic-tsf.dll",
-        "$projectRoot\build-win\msys-ethiopic-tsf.dll"
+        "$projectRoot\build-win\Release\ethiopic-tsf.dll"
     )
 
     foreach ($path in $candidates) {
